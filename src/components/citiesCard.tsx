@@ -13,7 +13,7 @@ export default function CitiesCard({ city }: any) {
           alt={city.name}
         />
         <div className="p-4">
-          <h2 className="text-lg font-semibold mt-2">
+          <h2 className="text-[1.12rem] font-semibold mt-2">
             {city.cityName}, {city.countryName}
           </h2>
           <p className="text-gray-600 text-sm mt-2">{city.flightFrom}</p>

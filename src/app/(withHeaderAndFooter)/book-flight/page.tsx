@@ -45,7 +45,7 @@ export default function page() {
   ];
   return (
     <>
-      <div className="max-w-[90rem] mx-auto p-6 my-10">
+      <div className="max-w-7xl mx-auto p-6 my-10">
         <div className="flex items-center justify-center">
           {steps.map((step, index) => (
             <React.Fragment key={step.id}>

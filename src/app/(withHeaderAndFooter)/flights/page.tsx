@@ -61,7 +61,7 @@ export default function page() {
         <div className="w-[30%] h-fit mx-auto px-4 py-4 shadow-[0_0_10px_0_rgba(0,0,0,0.1)] rounded-md mb-10">
           <h2
             className="text-3xl font-medium text-gray-800 flex justify-between items-center w-full px-2"
-            style={{ fontFamily: "var(--font-playfair)" }}
+            style={{ fontFamily: "var(--font-playfair-display)" }}
           >
             Filters
             <span
@@ -276,7 +276,7 @@ export default function page() {
           <h2 className="flex justify-between items-center w-full px-2">
             <span
               className="text-3xl font-medium text-gray-800"
-              style={{ fontFamily: "var(--font-playfair)" }}
+              style={{ fontFamily: "var(--font-playfair-display)" }}
             >
               List Of Flights
             </span>

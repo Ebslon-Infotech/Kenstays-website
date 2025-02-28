@@ -14,8 +14,8 @@ export default function getInTouch() {
       <Image src={background2} alt="background" />
       <div className="absolute left-[10%] top-1/4 text-center">
         <h2
-          className="text-6xl font-semibold text-primarycolor"
-          style={{ fontFamily: "var(--font-playfair)" }}
+          className="text-4xl font-semibold text-primarycolor"
+          style={{ fontFamily: "var(--font-playfair-display)" }}
         >
           Get In Touch
         </h2>

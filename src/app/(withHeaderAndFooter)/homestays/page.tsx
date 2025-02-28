@@ -374,7 +374,7 @@ export default function page() {
               className="text-3xl font-medium text-gray-800"
               style={{ fontFamily: "var(--font-playfair-display)" }}
             >
-              List Of Hotels
+              List Of Homestays
             </span>
             <button className="flex items-center gap-2 border border-gray-600 text-gray-600 text-sm font-medium py-2 px-4 rounded-md hover:bg-secondarycolor hover:text-white hover:border-none transition-all duration-300">
               <HiOutlineAdjustmentsHorizontal size={20} />
@@ -532,7 +532,7 @@ export default function page() {
                           </div>
 
                           <Link 
-                          href={`/hotels/${index+1}`}
+                          href={`/homestays/${index+1}`}
                           className="px-8 py-3 border-2 border-indigo-800 text-secondarycolor rounded-lg font-semibold text-[1rem] hover:bg-secondarycolor hover:text-white transition-colors">
                             See availability
                           </Link>

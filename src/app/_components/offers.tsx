@@ -34,10 +34,10 @@ export default function OffersSection() {
 
   return (
     <div className="p-8">
-      <div className="max-w-[90rem] mx-auto">
+      <div className="max-w-7xl mx-auto">
         <h1
-          className="text-6xl font-semibold text-black mb-2"
-          style={{ fontFamily: "var(--font-playfair)" }}
+          className="text-4xl font-semibold text-black mb-2"
+          style={{ fontFamily: "var(--font-playfair-display)" }}
         >
           Offers
         </h1>

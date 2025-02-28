@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Playfair, Montserrat, Dancing_Script } from "next/font/google";
+import { Geist, Geist_Mono, Playfair_Display, Montserrat, Dancing_Script } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,9 +12,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const playfair = Playfair(
+const playfair = Playfair_Display(
   {
-    variable: "--font-playfair",
+    variable: "--font-playfair-display",
     subsets: ["latin"],
   }
 )

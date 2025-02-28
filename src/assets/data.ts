@@ -23,7 +23,20 @@ import Qatar from "@/assets/Flight/Qatar.webp";
 import Indigo from "@/assets/Flight/Indigo.webp";
 import Vistara from "@/assets/Flight/Vistara.webp";
 import Oman from "@/assets/Flight/Oman.webp";
-import { title } from "process";
+
+import Fridge from "@/assets/Hotels/refrigator.webp";
+import Iron from "@/assets/Hotels/iron.webp";
+import TV from "@/assets/Hotels/smart-tv.webp";
+import Toiletries from "@/assets/Hotels/products.webp";
+import Gesiure from "@/assets/Hotels/water-heater.webp";
+import Hairdryer from "@/assets/Hotels/hairdryer.webp";
+import Kitchen from "@/assets/Hotels/kitchen.webp";
+import Toaster from "@/assets/Hotels/heater.webp";
+import Door from "@/assets/Hotels/door.webp";
+import Kettle from "@/assets/Hotels/electric-kettle.webp";
+import Parking from "@/assets/Hotels/parking.webp";
+import table from "@/assets/Hotels/workspace.webp";
+
 
 
 export const cities = [
@@ -278,4 +291,29 @@ export const roomFacility = [
   {id: 9, name: "Flat-screen TV", checked: false, code: 18},
   {id: 10, name: "Minibar", checked: false, code: 19},
   {id: 11, name: "Wake-up service/Alarm clock", checked: false, code: 20},
+]
+
+export const hotelFacility = [
+  {id: 1, image: Fridge, name: "Refrigerator"},
+  {id:2, image: Iron, name: "Iron"},
+  {id:3, image: Hairdryer, name: "Hair Dryer"},
+  {id:4, image: Toiletries, name: "Toiletries"},
+  {id:5, image: Gesiure, name: "Gesiure"},
+  {id:6, image: TV, name: "Television"},
+  {id:7, image: Toaster, name: "Portable Heater"},
+  {id:8, image: Door, name: "Doon Valley View"},
+  {id:9, image: Parking, name: "Street Parking"},
+  {id:10, image: Kettle, name: "Kettle Toaster"},
+  {id:11, image: table, name: "Dedicated Workspace"},
+  {id:12, image: Kitchen, name: "Equipped Kitchen"},
+]
+
+
+export const superiorRoom = [
+  "Laundry Service",
+  "Housekeeping",
+  "In-room Dining",
+  "Air Conditioning",
+  "24 hour Room Service",
+  "Free WiFi"
 ]

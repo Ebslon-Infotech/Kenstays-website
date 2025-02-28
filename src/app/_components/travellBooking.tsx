@@ -129,7 +129,7 @@ export default function travellBooking() {
           className={`text-start text-[3.35rem] leading-[2.8rem] font-medium ${
             type === "Flight" ? "text-secondarycolor" : "text-white"
           }  capitalize`}
-          style={{ fontFamily: "var(--font-playfair)" }}
+          style={{ fontFamily: "var(--font-playfair-display)" }}
         >
           Make your Holiday <br /> Memorable
         </h1>

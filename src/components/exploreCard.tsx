@@ -13,7 +13,7 @@ export default function exploreCard({ explore }: any) {
         />
         <div className="absolute bottom-4 w-full text-center px-4">
           <h3 className="text-white text-[1rem] font-normal">Create Memories in</h3>
-          <p className="text-white text-4xl font-medium mt-2" style={{fontFamily : "var(--font-playfair)"}}>{explore.name}</p>
+          <p className="text-white text-4xl font-medium mt-2" style={{fontFamily : "var(--font-playfair-display)"}}>{explore.name}</p>
         </div>
       </div>
     </div>

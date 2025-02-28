@@ -9,7 +9,7 @@ export default function footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Section */}
           <div>
-            <h3 className="text-yellow-500 text-4xl font-semibold mb-4" style={{fontFamily: "var(--font-playfair)"}}>Company</h3>
+            <h3 className="text-yellow-500 text-4xl font-semibold mb-4" style={{fontFamily: "var(--font-playfair-display)"}}>Company</h3>
             <ul className="space-y-3">
               <li className="cursor-pointer hover:text-primarycolor">About us</li>
               <li className="cursor-pointer hover:text-primarycolor">List your property</li>
@@ -19,7 +19,7 @@ export default function footer() {
 
           {/* Explore Section */}
           <div>
-            <h3 className="text-yellow-500 text-4xl font-semibold mb-4" style={{fontFamily: "var(--font-playfair)"}}>Explore</h3>
+            <h3 className="text-yellow-500 text-4xl font-semibold mb-4" style={{fontFamily: "var(--font-playfair-display)"}}>Explore</h3>
             <ul className="space-y-3">
               <li className="cursor-pointer hover:text-primarycolor">India travel guide</li>
               <li className="cursor-pointer hover:text-primarycolor">Hotels in India</li>
@@ -32,7 +32,7 @@ export default function footer() {
 
           {/* Policies Section */}
           <div>
-            <h3 className="text-yellow-500 text-4xl font-semibold mb-4" style={{fontFamily: "var(--font-playfair)"}}>
+            <h3 className="text-yellow-500 text-4xl font-semibold mb-4" style={{fontFamily: "var(--font-playfair-display)"}}>
               Policies
             </h3>
             <ul className="space-y-3">
@@ -45,7 +45,7 @@ export default function footer() {
 
           {/* Help Section */}
           <div>
-            <h3 className="text-yellow-500 text-4xl font-semibold mb-4" style={{fontFamily: "var(--font-playfair)"}}>Help</h3>
+            <h3 className="text-yellow-500 text-4xl font-semibold mb-4" style={{fontFamily: "var(--font-playfair-display)"}}>Help</h3>
             <ul className="space-y-3">
               <li className="cursor-pointer hover:text-primarycolor">Support</li>
               <li className="cursor-pointer hover:text-primarycolor">Change or cancel your booking</li>

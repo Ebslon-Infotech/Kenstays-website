@@ -17,7 +17,7 @@ const FlightDetailsPage = () => {
   return (
     <div className="max-w-7xl mx-auto p-6 my-10">
       {/* Header */}
-      <h1 className="text-5xl font-semibold mb-8"  style={{ fontFamily: "var(--font-playfair)" }}>Your flight to Dubai</h1>
+      <h1 className="text-4xl font-semibold mb-8"  style={{ fontFamily: "var(--font-playfair-display)" }}>Your flight to Dubai</h1>
 
       {/* Airline Info */}
       <div className="flex items-center justify-between mb-6">

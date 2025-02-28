@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+//import Slider from "react-slick";
 
 import offer1 from "@/assets/Homepage/offer1.webp";
 import offer2 from "@/assets/Homepage/offer2.webp";
@@ -76,10 +77,10 @@ export default function page() {
 
       {/* Trending Cities */}
       <div className="p-10">
-        <div className="max-w-[90rem] mx-auto">
+        <div className="max-w-7xl mx-auto">
           <h1
-            className="text-6xl font-semibold text-black"
-            style={{ fontFamily: "var(--font-playfair)" }}
+            className="text-4xl font-semibold text-black"
+            style={{ fontFamily: "var(--font-playfair-display)" }}
           >
             Trending Cities
           </h1>
@@ -97,10 +98,10 @@ export default function page() {
 
       {/* DIscover Weekly */}
       <div className="p-10">
-        <div className="max-w-[90rem] mx-auto">
+        <div className="max-w-7xl mx-auto">
           <h1
-            className="text-6xl font-semibold text-black"
-            style={{ fontFamily: "var(--font-playfair)" }}
+            className="text-4xl font-semibold text-black"
+            style={{ fontFamily: "var(--font-playfair-display)" }}
           >
             Discover Weekly
           </h1>
@@ -124,10 +125,10 @@ export default function page() {
 
       {/* Explore India */}
       <div className="p-10">
-        <div className="max-w-[90rem] mx-auto">
+        <div className="max-w-7xl mx-auto">
           <h1
-            className="text-6xl font-semibold text-black"
-            style={{ fontFamily: "var(--font-playfair)" }}
+            className="text-4xl font-semibold text-black"
+            style={{ fontFamily: "var(--font-playfair-display)" }}
           >
             Explore India
           </h1>
@@ -145,10 +146,10 @@ export default function page() {
 
       {/* Explore World */}
       <div className="p-10">
-        <div className="max-w-[90rem] mx-auto">
+        <div className="max-w-7xl mx-auto">
           <h1
-            className="text-6xl font-semibold text-black"
-            style={{ fontFamily: "var(--font-playfair)" }}
+            className="text-4xl font-semibold text-black"
+            style={{ fontFamily: "var(--font-playfair-display)" }}
           >
             Explore India
           </h1>
@@ -166,10 +167,10 @@ export default function page() {
 
       {/* Inspiration */}
       <div className="p-10">
-        <div className="max-w-[90rem] mx-auto">
+        <div className="max-w-7xl mx-auto">
           <h1
-            className="text-6xl font-semibold text-black"
-            style={{ fontFamily: "var(--font-playfair)" }}
+            className="text-4xl font-semibold text-black"
+            style={{ fontFamily: "var(--font-playfair-display)" }}
           >
             Get Inspiration for your next trip
           </h1>
@@ -245,10 +246,10 @@ export default function page() {
 
       {/* Property Type */}
       <div className="p-10">
-        <div className="max-w-[90rem] mx-auto">
+        <div className="max-w-7xl mx-auto">
           <h1
-            className="text-6xl font-semibold text-black"
-            style={{ fontFamily: "var(--font-playfair)" }}
+            className="text-4xl font-semibold text-black"
+            style={{ fontFamily: "var(--font-playfair-display)" }}
           >
             Browse by Property Type
           </h1>
@@ -377,7 +378,7 @@ export default function page() {
             </div>
             <h1
               className={`text-start text-[3.35rem] leading-[2.8rem] font-medium   capitalize`}
-              style={{ fontFamily: "var(--font-playfair)" }}
+              style={{ fontFamily: "var(--font-playfair-display)" }}
             >
               Discover Our Travel <br /> Guideline
             </h1>
@@ -415,13 +416,13 @@ export default function page() {
         <div className="flex gap-4 items-start">
          <Image src={go1} alt="kenstay" height={180} width={400} />
          <div className="flex flex-col justify-between gap-4 h-full">
-           <h2 className="text-5xl font-semibold px-10 mb-6" style={{fontFamily: "var(--font-playfair)"}}>
+           <h2 className="text-4xl font-semibold px-10 mb-6" style={{fontFamily: "var(--font-playfair-display)"}}>
             Go Further with the Kenstay app
            </h2>
            <p className="text-lg font-medium px-10 leading-5 mb-6">
            Save on select hotels and earn double points when you book on the app. Our app deals help you to save on trips so you can travel more and manage it all on the go.
            </p>
-           <h3 className="text-primarycolor text-[1.5rem] font-medium pl-10" style={{fontFamily: "var(--font-playfair)"}}>
+           <h3 className="text-primarycolor text-[1.4rem] font-medium pl-10" style={{fontFamily: "var(--font-playfair-display)"}}>
            Scan the QR code with your device camera and download our app
            </h3>
          </div>
