@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 
 export default function footer() {
   return (
@@ -26,7 +27,11 @@ export default function footer() {
               <li className="cursor-pointer hover:text-primarycolor">Holiday rentals in India</li>
               <li className="cursor-pointer hover:text-primarycolor">Holiday packages in India</li>
               <li className="cursor-pointer hover:text-primarycolor">Domestic flights</li>
-              <li className="cursor-pointer hover:text-primarycolor">Travel blog</li>
+              <li className="cursor-pointer hover:text-primarycolor">
+                <Link href="/blog">
+                Travel blog
+                </Link>
+                </li>
             </ul>
           </div>
 
