@@ -12,7 +12,11 @@ export default function footer() {
           <div>
             <h3 className="text-yellow-500 text-4xl font-semibold mb-4" style={{fontFamily: "var(--font-playfair-display)"}}>Company</h3>
             <ul className="space-y-3">
-              <li className="cursor-pointer hover:text-primarycolor">About us</li>
+              <li className="cursor-pointer hover:text-primarycolor">
+                <Link href="/about-us">
+                About us
+                </Link>
+                </li>
               <li className="cursor-pointer hover:text-primarycolor">List your property</li>
               <li className="cursor-pointer hover:text-primarycolor">Partnerships</li>
             </ul>
