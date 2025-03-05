@@ -887,7 +887,7 @@ export default function travellBooking() {
           {activeMenuTab === "Flight" && (
             <div className="flex justify-center mt-5">
               <Link
-                href="/flights"
+                href={selectedOptions.has("round-trip") ? "/flights/round-trip" : "/flights/one-way"}
                 className="mt-6 w-fit bg-secondarycolor text-white px-6 py-3 rounded-md flex items-center justify-center gap-2 transition-colors"
               >
                 <FaPaperPlane className="h-5 w-5" />

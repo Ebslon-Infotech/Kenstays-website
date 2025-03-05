@@ -45,10 +45,22 @@ export default function footer() {
               Policies
             </h3>
             <ul className="space-y-3">
-              <li className="cursor-pointer hover:text-primarycolor">Privacy</li>
-              <li className="cursor-pointer hover:text-primarycolor">Terms of use</li>
+              <li className="cursor-pointer hover:text-primarycolor">
+                <Link href="/privacy-policy">
+                Privacy
+                </Link>
+                </li>
+              <li className="cursor-pointer hover:text-primarycolor">
+                <Link href="/terms-of-use">
+                Terms of use
+                </Link>
+                </li>
               <li className="cursor-pointer hover:text-primarycolor">Cookies</li>
-              <li className="cursor-pointer hover:text-primarycolor">Terms and Conditions</li>
+              <li className="cursor-pointer hover:text-primarycolor">
+                <Link href="/terms-and-condition">
+                Terms and Conditions
+                </Link>
+                </li>
             </ul>
           </div>
 
