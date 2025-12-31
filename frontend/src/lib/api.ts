@@ -214,6 +214,46 @@ export const homestaysAPI = {
 
 // Flights API calls
 export const flightsAPI = {
+  search: async (searchParams: {
+    origin: string;
+    destination: string;
+    departureDate: string;
+    returnDate?: string;
+    adults?: number;
+    children?: number;
+    infants?: number;
+    cabinClass?: number;
+    journeyType?: number;
+    directFlight?: boolean;
+    oneStopFlight?: boolean;
+    sources?: string[] | null;
+  }) => {
+    return await apiCall('/flights/search', {
+      method: 'POST',
+      body: JSON.stringify(searchParams),
+    });
+  },
+
+  getFareRules: async (params: {
+    traceId: string;
+    resultIndex: string;
+  }) => {
+    return await apiCall('/flights/fare-rules', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  },
+
+  getFareQuote: async (params: {
+    traceId: string;
+    resultIndex: string;
+  }) => {
+    return await apiCall('/flights/fare-quote', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  },
+
   getAll: async (filters?: any) => {
     const queryParams = new URLSearchParams(filters).toString();
     return await apiCall(`/flights?${queryParams}`);

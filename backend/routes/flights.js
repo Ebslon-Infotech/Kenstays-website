@@ -6,12 +6,20 @@ const {
   createFlight,
   updateFlight,
   deleteFlight,
-  searchFlights
+  searchFlights,
+  getFareRules,
+  getFareQuote
 } = require('../controllers/flightController');
 const { protect, authorize } = require('../middleware/auth');
 
 // Search flights (public access)
 router.post('/search', searchFlights);
+
+// Get fare rules (public access)
+router.post('/fare-rules', getFareRules);
+
+// Get fare quote (public access)
+router.post('/fare-quote', getFareQuote);
 
 router.route('/')
   .get(getFlights)

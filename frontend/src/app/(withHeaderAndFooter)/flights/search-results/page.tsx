@@ -8,7 +8,7 @@ import { IoIosAirplane, IoIosTime } from "react-icons/io";
 import { MdFlightTakeoff, MdFlightLand } from "react-icons/md";
 import { BsLuggage } from "react-icons/bs";
 import { GiMeal } from "react-icons/gi";
-import axios from "axios";
+import { flightsAPI } from "@/lib/api";
 
 interface Segment {
   Origin: {
@@ -65,7 +65,7 @@ export default function FlightSearchResults() {
 
       // Get search parameters from URL
       const origin = searchParams.get("origin") || "DEL";
-      const destination = searchParams.get("destination") || "DXB";
+      const destination = searchParams.get("destination") || "BOM";
       const departureDate = searchParams.get("departureDate") || new Date().toISOString().split("T")[0];
       const returnDate = searchParams.get("returnDate") || "";
       const adults = parseInt(searchParams.get("adults") || "1");
@@ -75,13 +75,21 @@ export default function FlightSearchResults() {
       const journeyType = returnDate ? 2 : 1;
       const directFlight = searchParams.get("directFlight") === "true";
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+      // Format dates to yyyy-MM-dd format (backend will convert to TekTravels format)
+      const formatDate = (dateStr: string) => {
+        if (!dateStr) return "";
+        const date = new Date(dateStr);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      };
 
-      const response = await axios.post(`${API_URL}/flights/search`, {
-        origin,
-        destination,
-        departureDate,
-        returnDate,
+      const response = await flightsAPI.search({
+        origin: origin.toUpperCase(),
+        destination: destination.toUpperCase(),
+        departureDate: formatDate(departureDate),
+        returnDate: returnDate ? formatDate(returnDate) : undefined,
         adults,
         children,
         infants,
@@ -92,15 +100,18 @@ export default function FlightSearchResults() {
         sources: null
       });
 
-      if (response.data.success) {
-        setResults(response.data.data.results || []);
-        setTraceId(response.data.data.traceId || "");
+      if (response.success) {
+        // Handle nested results array structure from TekTravels API
+        const resultsData = response.data.results || [];
+        const flatResults = resultsData.flat(); // Flatten nested arrays
+        setResults(flatResults);
+        setTraceId(response.data.traceId || "");
       } else {
-        setError(response.data.message || "Failed to search flights");
+        setError(response.message || "Failed to search flights");
       }
     } catch (err: any) {
       console.error("Search error:", err);
-      setError(err.response?.data?.message || "Failed to search flights. Please try again.");
+      setError(err.message || "Failed to search flights. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -455,12 +466,20 @@ export default function FlightSearchResults() {
                           {flight.IsRefundable ? "Refundable" : "Non-refundable"}
                         </p>
                       </div>
-                      <Link
-                        href={`/book-flight?resultIndex=${flight.ResultIndex}&traceId=${traceId}`}
+                      <button
+                        onClick={() => {
+                          // Store in localStorage to avoid 431 error with long URLs
+                          localStorage.setItem('fareDetailsParams', JSON.stringify({
+                            resultIndex: flight.ResultIndex,
+                            traceId: traceId,
+                            flightData: flight
+                          }));
+                          window.location.href = '/flights/fare-details';
+                        }}
                         className="bg-secondarycolor text-white px-8 py-3 rounded-md hover:bg-opacity-90 transition-colors font-semibold"
                       >
-                        Book Now
-                      </Link>
+                        View Fare Details →
+                      </button>
                     </div>
                   </div>
                 ))}

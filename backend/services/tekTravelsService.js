@@ -212,6 +212,25 @@ const searchFlights = async (searchParams) => {
       throw new Error('At least one segment is required');
     }
 
+    // Helper function to format date to TekTravels format (yyyy-MM-ddTHH:mm:ss)
+    const formatDateForTekTravels = (dateString) => {
+      if (!dateString) return '';
+      
+      // If already in correct format, return as is
+      if (dateString.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/)) {
+        return dateString;
+      }
+      
+      // Parse date and format to yyyy-MM-ddTHH:mm:ss
+      const date = new Date(dateString);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      
+      // Default to 00:00:00 for any time
+      return `${year}-${month}-${day}T00:00:00`;
+    };
+
     // Prepare request body
     const requestBody = {
       EndUserIp: endUserIp || TEKTRAVELS_END_USER_IP,
@@ -224,11 +243,11 @@ const searchFlights = async (searchParams) => {
       JourneyType: journeyType,
       PreferredAirlines: null,
       Segments: segments.map(segment => ({
-        Origin: segment.origin,
-        Destination: segment.destination,
+        Origin: segment.origin.toUpperCase(),
+        Destination: segment.destination.toUpperCase(),
         FlightCabinClass: segment.cabinClass || 2, // 1: All, 2: Economy, 3: PremiumEconomy, 4: Business, 5: PremiumBusiness, 6: First
-        PreferredDepartureTime: segment.departureDate,
-        PreferredArrivalTime: segment.arrivalDate || ""
+        PreferredDepartureTime: formatDateForTekTravels(segment.departureDate),
+        PreferredArrivalTime: formatDateForTekTravels(segment.departureDate) // Use same date as departure
       })),
       Sources: sources
     };
@@ -276,6 +295,176 @@ const searchFlights = async (searchParams) => {
   }
 };
 
+/**
+ * Get fare rules for a specific flight result
+ * @param {Object} fareRuleParams - Fare rule parameters
+ * @param {String} fareRuleParams.tokenId - TekTravels token ID
+ * @param {String} fareRuleParams.endUserIp - End user IP address
+ * @param {String} fareRuleParams.traceId - Trace ID from search response
+ * @param {String} fareRuleParams.resultIndex - Result index of the selected flight
+ * @returns {Object} - Fare rules response
+ */
+const getFareRules = async (fareRuleParams) => {
+  try {
+    const BOOKING_API_BASE_URL = 'http://api.tektravels.com';
+    
+    const {
+      tokenId,
+      endUserIp,
+      traceId,
+      resultIndex
+    } = fareRuleParams;
+
+    // Validate required parameters
+    if (!tokenId) {
+      throw new Error('TokenId is required');
+    }
+    if (!traceId) {
+      throw new Error('TraceId is required');
+    }
+    if (!resultIndex) {
+      throw new Error('ResultIndex is required');
+    }
+
+    // Prepare request body
+    const requestBody = {
+      EndUserIp: endUserIp || TEKTRAVELS_END_USER_IP,
+      TokenId: tokenId,
+      TraceId: traceId,
+      ResultIndex: resultIndex
+    };
+
+    console.log('Getting fare rules from TekTravels API...', JSON.stringify(requestBody, null, 2));
+
+    const response = await axios.post(
+      `${BOOKING_API_BASE_URL}/BookingEngineService_Air/AirService.svc/rest/FareRule`,
+      requestBody,
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000 // 30 seconds timeout
+      }
+    );
+
+    if (response.data && response.data.Response) {
+      console.log('Fare rules retrieved successfully');
+      console.log('TraceId:', response.data.Response.TraceId);
+      console.log('Fare rules count:', response.data.Response.FareRules?.length || 0);
+      
+      return {
+        success: true,
+        traceId: response.data.Response.TraceId,
+        fareRules: response.data.Response.FareRules || [],
+        error: response.data.Response.Error,
+        responseStatus: response.data.Response.ResponseStatus,
+        response: response.data.Response
+      };
+    } else {
+      throw new Error('Invalid response from TekTravels FareRule API');
+    }
+  } catch (error) {
+    console.error('TekTravels fare rules error:', error.response?.data || error.message);
+    
+    // Check if error response has structured error message
+    if (error.response?.data?.Response?.Error) {
+      const apiError = error.response.data.Response.Error;
+      throw new Error(`${apiError.ErrorCode}: ${apiError.ErrorMessage}`);
+    }
+    
+    throw new Error(error.response?.data?.Error?.ErrorMessage || error.message || 'Failed to get fare rules');
+  }
+};
+
+/**
+ * Get fare quote for a specific flight result
+ * This provides detailed pricing and confirms availability before booking
+ * @param {Object} fareQuoteParams - Fare quote parameters
+ * @param {String} fareQuoteParams.tokenId - TekTravels token ID
+ * @param {String} fareQuoteParams.endUserIp - End user IP address
+ * @param {String} fareQuoteParams.traceId - Trace ID from search response
+ * @param {String} fareQuoteParams.resultIndex - Result index of the selected flight
+ * @returns {Object} - Fare quote response with detailed pricing
+ */
+const getFareQuote = async (fareQuoteParams) => {
+  try {
+    const BOOKING_API_BASE_URL = 'http://api.tektravels.com';
+    
+    const {
+      tokenId,
+      endUserIp,
+      traceId,
+      resultIndex
+    } = fareQuoteParams;
+
+    // Validate required parameters
+    if (!tokenId) {
+      throw new Error('TokenId is required');
+    }
+    if (!traceId) {
+      throw new Error('TraceId is required');
+    }
+    if (!resultIndex) {
+      throw new Error('ResultIndex is required');
+    }
+
+    // Prepare request body
+    const requestBody = {
+      EndUserIp: endUserIp || TEKTRAVELS_END_USER_IP,
+      TokenId: tokenId,
+      TraceId: traceId,
+      ResultIndex: resultIndex
+    };
+
+    console.log('Getting fare quote from TekTravels API...', JSON.stringify(requestBody, null, 2));
+
+    const response = await axios.post(
+      `${BOOKING_API_BASE_URL}/BookingEngineService_Air/AirService.svc/rest/FareQuote`,
+      requestBody,
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000 // 30 seconds timeout
+      }
+    );
+
+    if (response.data && response.data.Response) {
+      const apiResponse = response.data.Response;
+      console.log('Fare quote retrieved successfully');
+      console.log('TraceId:', apiResponse.TraceId);
+      console.log('IsPriceChanged:', apiResponse.IsPriceChanged);
+      console.log('ResponseStatus:', apiResponse.ResponseStatus);
+      
+      return {
+        success: true,
+        traceId: apiResponse.TraceId,
+        isPriceChanged: apiResponse.IsPriceChanged,
+        isTimeChanged: apiResponse.IsTimeChanged || false,
+        responseStatus: {
+          status: apiResponse.ResponseStatus === 1,
+          code: apiResponse.ResponseStatus
+        },
+        results: apiResponse.Results, // Results is an object, not an array
+        error: apiResponse.Error,
+        response: apiResponse
+      };
+    } else {
+      throw new Error('Invalid response from TekTravels FareQuote API');
+    }
+  } catch (error) {
+    console.error('TekTravels fare quote error:', error.response?.data || error.message);
+    
+    // Check if error response has structured error message
+    if (error.response?.data?.Response?.Error) {
+      const apiError = error.response.data.Response.Error;
+      throw new Error(`${apiError.ErrorCode}: ${apiError.ErrorMessage}`);
+    }
+    
+    throw new Error(error.response?.data?.Error?.ErrorMessage || error.message || 'Failed to get fare quote');
+  }
+};
+
 module.exports = {
   authenticate,
   logout,
@@ -283,5 +472,7 @@ module.exports = {
   getCachedToken,
   clearCachedToken,
   getClientIP,
-  searchFlights
+  searchFlights,
+  getFareRules,
+  getFareQuote
 };

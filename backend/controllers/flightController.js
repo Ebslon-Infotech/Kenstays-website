@@ -104,6 +104,140 @@ exports.searchFlights = async (req, res) => {
   }
 };
 
+// @desc    Get fare rules for a flight
+// @route   POST /api/flights/fare-rules
+// @access  Public
+exports.getFareRules = async (req, res) => {
+  try {
+    const {
+      traceId,
+      resultIndex
+    } = req.body;
+
+    // Validate required fields
+    if (!traceId || !resultIndex) {
+      return res.status(400).json({
+        success: false,
+        message: 'TraceId and ResultIndex are required'
+      });
+    }
+
+    // Get user's token if logged in, otherwise use cached token
+    let tokenId;
+    if (req.user && req.user.tekTravelsToken) {
+      // Check if user's token is expired
+      if (req.user.tekTravelsTokenExpiry && new Date(req.user.tekTravelsTokenExpiry) > new Date()) {
+        tokenId = req.user.tekTravelsToken;
+      } else {
+        // Renew token
+        const endUserIp = tekTravelsService.getClientIP(req);
+        const authResult = await tekTravelsService.authenticate(endUserIp);
+        tokenId = authResult.TokenId;
+        
+        // Update user's token in database
+        req.user.tekTravelsToken = tokenId;
+        req.user.tekTravelsTokenExpiry = new Date(authResult.expiresAt);
+        await req.user.save();
+      }
+    } else {
+      // Use cached token or authenticate
+      tokenId = tekTravelsService.getCachedToken();
+      if (!tokenId) {
+        const endUserIp = tekTravelsService.getClientIP(req);
+        const authResult = await tekTravelsService.authenticate(endUserIp);
+        tokenId = authResult.TokenId;
+      }
+    }
+
+    // Get fare rules
+    const fareRulesResult = await tekTravelsService.getFareRules({
+      tokenId,
+      endUserIp: tekTravelsService.getClientIP(req),
+      traceId,
+      resultIndex
+    });
+
+    res.status(200).json({
+      success: true,
+      data: fareRulesResult
+    });
+
+  } catch (error) {
+    console.error('Fare rules error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error getting fare rules'
+    });
+  }
+};
+
+// @desc    Get fare quote for a flight  
+// @route   POST /api/flights/fare-quote
+// @access  Public
+exports.getFareQuote = async (req, res) => {
+  try {
+    const {
+      traceId,
+      resultIndex
+    } = req.body;
+
+    // Validate required fields
+    if (!traceId || !resultIndex) {
+      return res.status(400).json({
+        success: false,
+        message: 'TraceId and ResultIndex are required'
+      });
+    }
+
+    // Get user's token if logged in, otherwise use cached token
+    let tokenId;
+    if (req.user && req.user.tekTravelsToken) {
+      // Check if user's token is expired
+      if (req.user.tekTravelsTokenExpiry && new Date(req.user.tekTravelsTokenExpiry) > new Date()) {
+        tokenId = req.user.tekTravelsToken;
+      } else {
+        // Renew token
+        const endUserIp = tekTravelsService.getClientIP(req);
+        const authResult = await tekTravelsService.authenticate(endUserIp);
+        tokenId = authResult.TokenId;
+        
+        // Update user's token in database
+        req.user.tekTravelsToken = tokenId;
+        req.user.tekTravelsTokenExpiry = new Date(authResult.expiresAt);
+        await req.user.save();
+      }
+    } else {
+      // Use cached token or authenticate
+      tokenId = tekTravelsService.getCachedToken();
+      if (!tokenId) {
+        const endUserIp = tekTravelsService.getClientIP(req);
+        const authResult = await tekTravelsService.authenticate(endUserIp);
+        tokenId = authResult.TokenId;
+      }
+    }
+
+    // Get fare quote
+    const fareQuoteResult = await tekTravelsService.getFareQuote({
+      tokenId,
+      endUserIp: tekTravelsService.getClientIP(req),
+      traceId,
+      resultIndex
+    });
+
+    res.status(200).json({
+      success: true,
+      data: fareQuoteResult
+    });
+
+  } catch (error) {
+    console.error('Fare quote error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error getting fare quote'
+    });
+  }
+};
+
 // @desc    Get all flights
 // @route   GET /api/flights
 // @access  Public
