@@ -57,8 +57,82 @@ const bookingSchema = new mongoose.Schema({
     email: String,
     phone: String,
     dateOfBirth: Date,
-    passportNumber: String
+    passportNumber: String,
+    // SSR selections for this passenger
+    selectedBaggage: {
+      code: String,
+      description: String,
+      weight: Number,
+      price: Number,
+      currency: String,
+      origin: String,
+      destination: String,
+      airlineCode: String,
+      flightNumber: String
+    },
+    selectedMeal: {
+      code: String,
+      description: String,
+      airlineDescription: String,
+      price: Number,
+      currency: String,
+      origin: String,
+      destination: String,
+      airlineCode: String,
+      flightNumber: String
+    },
+    selectedSeat: {
+      code: String,
+      seatNo: String,
+      rowNo: String,
+      seatType: String, // Window, Aisle, Middle
+      price: Number,
+      currency: String,
+      origin: String,
+      destination: String,
+      airlineCode: String,
+      flightNumber: String
+    }
   }],
+  // TekTravels specific data
+  tekTravels: {
+    traceId: String,
+    resultIndex: String,
+    bookingId: Number,
+    pnr: String,
+    ticketStatus: {
+      type: String,
+      enum: ['not_booked', 'booked', 'ticketed', 'cancelled'],
+      default: 'not_booked'
+    },
+    invoiceId: String,
+    // Store fare quote data
+    fareBreakup: {
+      baseFare: Number,
+      tax: Number,
+      yqTax: Number,
+      additionalTxnFeePub: Number,
+      additionalTxnFeeOfrd: Number,
+      otherCharges: Number,
+      discount: Number,
+      publishedFare: Number,
+      offeredFare: Number,
+      totalBaggageCharges: Number,
+      totalMealCharges: Number,
+      totalSeatCharges: Number,
+      totalSSRCharges: Number
+    },
+    segments: [{
+      origin: String,
+      destination: String,
+      airline: String,
+      flightNumber: String,
+      departureTime: Date,
+      arrivalTime: Date,
+      duration: Number,
+      cabinClass: String
+    }]
+  },
   totalPrice: {
     type: Number,
     required: true

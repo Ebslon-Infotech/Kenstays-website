@@ -465,6 +465,118 @@ const getFareQuote = async (fareQuoteParams) => {
   }
 };
 
+/**
+ * Get SSR (Special Service Request) for baggage, meals, and seats
+ * This provides options for excess baggage, meal selection, and seat selection
+ * @param {Object} ssrParams - SSR parameters
+ * @param {String} ssrParams.tokenId - TekTravels token ID
+ * @param {String} ssrParams.endUserIp - End user IP address
+ * @param {String} ssrParams.traceId - Trace ID from search response
+ * @param {String} ssrParams.resultIndex - Result index of the selected flight
+ * @param {Number} ssrParams.bookingId - (Optional) Booking ID for air amendment after ticketing
+ * @returns {Object} - SSR response with baggage, meal, and seat options
+ */
+const getSSR = async (ssrParams) => {
+  try {
+    const BOOKING_API_BASE_URL = 'http://api.tektravels.com';
+    
+    const {
+      tokenId,
+      endUserIp,
+      traceId,
+      resultIndex,
+      bookingId
+    } = ssrParams;
+
+    // Validate required parameters
+    if (!tokenId) {
+      throw new Error('TokenId is required');
+    }
+
+    // Prepare request body based on whether it's initial SSR or air amendment
+    let requestBody;
+    
+    if (bookingId) {
+      // Air Amendment - for buying SSR after ticketing
+      requestBody = {
+        EndUserIp: endUserIp || TEKTRAVELS_END_USER_IP,
+        TokenId: tokenId,
+        BookingId: bookingId
+      };
+      console.log('Getting SSR for air amendment (BookingId)...', JSON.stringify(requestBody, null, 2));
+    } else {
+      // Initial SSR request before booking
+      if (!traceId || !resultIndex) {
+        throw new Error('TraceId and ResultIndex are required for initial SSR request');
+      }
+      
+      requestBody = {
+        EndUserIp: endUserIp || TEKTRAVELS_END_USER_IP,
+        TokenId: tokenId,
+        TraceId: traceId,
+        ResultIndex: resultIndex
+      };
+      console.log('Getting SSR from TekTravels API...', JSON.stringify(requestBody, null, 2));
+    }
+
+    const response = await axios.post(
+      `${BOOKING_API_BASE_URL}/BookingEngineService_Air/AirService.svc/rest/SSR`,
+      requestBody,
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000 // 30 seconds timeout
+      }
+    );
+
+    if (response.data && response.data.Response) {
+      const apiResponse = response.data.Response;
+      console.log('SSR retrieved successfully');
+      console.log('TraceId:', apiResponse.TraceId);
+      console.log('ResponseStatus:', apiResponse.ResponseStatus);
+      console.log('Baggage options:', apiResponse.Baggage?.length || 0);
+      console.log('Meal options:', apiResponse.MealDynamic?.length || 0);
+      console.log('Seat options available:', !!apiResponse.SeatDynamic);
+      
+      // Determine if this is LCC or Non-LCC based on response structure
+      const isLCC = apiResponse.Baggage || apiResponse.MealDynamic || apiResponse.SeatDynamic;
+      
+      return {
+        success: true,
+        traceId: apiResponse.TraceId,
+        responseStatus: {
+          status: apiResponse.ResponseStatus === 1,
+          code: apiResponse.ResponseStatus
+        },
+        isLCC: !!isLCC,
+        // LCC specific data
+        baggage: apiResponse.Baggage || [],
+        mealDynamic: apiResponse.MealDynamic || [],
+        seatDynamic: apiResponse.SeatDynamic || [],
+        specialServices: apiResponse.SpecialServices || [],
+        // Non-LCC specific data
+        seatPreference: apiResponse.SeatPreference || [],
+        meal: apiResponse.Meal || [],
+        error: apiResponse.Error,
+        response: apiResponse
+      };
+    } else {
+      throw new Error('Invalid response from TekTravels SSR API');
+    }
+  } catch (error) {
+    console.error('TekTravels SSR error:', error.response?.data || error.message);
+    
+    // Check if error response has structured error message
+    if (error.response?.data?.Response?.Error) {
+      const apiError = error.response.data.Response.Error;
+      throw new Error(`${apiError.ErrorCode}: ${apiError.ErrorMessage}`);
+    }
+    
+    throw new Error(error.response?.data?.Error?.ErrorMessage || error.message || 'Failed to get SSR');
+  }
+};
+
 module.exports = {
   authenticate,
   logout,
@@ -474,5 +586,6 @@ module.exports = {
   getClientIP,
   searchFlights,
   getFareRules,
-  getFareQuote
+  getFareQuote,
+  getSSR
 };

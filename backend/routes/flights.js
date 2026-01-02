@@ -8,7 +8,8 @@ const {
   deleteFlight,
   searchFlights,
   getFareRules,
-  getFareQuote
+  getFareQuote,
+  getSSR
 } = require('../controllers/flightController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -20,6 +21,9 @@ router.post('/fare-rules', getFareRules);
 
 // Get fare quote (public access)
 router.post('/fare-quote', getFareQuote);
+
+// Get SSR - Special Service Request for baggage, meals, seats (public access)
+router.post('/ssr', getSSR);
 
 router.route('/')
   .get(getFlights)

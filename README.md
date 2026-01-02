@@ -114,19 +114,37 @@ node test-flight-search.js
 # Test the fare rules API
 cd backend
 node test-fare-rules.js
+
+# Test the fare quote API
+cd backend
+node test-fare-quote.js
+
+# Test the SSR API (NEW!)
+cd backend
+node test-ssr.js
 ```
 
 ### Booking Flow
 ```
-1. Search Flights ✓
-2. View Fare Rules ✓
-3. FareQuote (next)
-4. SSR (seat/meal/baggage)
-5. Book
-6. Ticket
+1. Authenticate ✓
+2. Search Flights ✓
+3. View Fare Rules ✓
+4. Fare Quote ✓
+5. SSR (Special Service Request) ✓ NEW!
+   - Baggage selection
+   - Meal selection
+   - Seat selection
+6. Book (next)
+7. Ticket (next)
+8. GetBookingDetails (next)
 ```
 
 ### Documentation
+- **[SSR_SUMMARY.md](./SSR_SUMMARY.md)** - SSR integration summary and quick start ⚡ NEW!
+- **[SSR_QUICKREF.md](./SSR_QUICKREF.md)** - SSR quick reference guide NEW!
+- **[SSR_INTEGRATION_COMPLETE.md](./SSR_INTEGRATION_COMPLETE.md)** - Complete SSR documentation NEW!
+- **[SSR_VISUAL_GUIDE.md](./SSR_VISUAL_GUIDE.md)** - Visual flow diagrams NEW!
+- **[SSR_USER_GUIDE.md](./SSR_USER_GUIDE.md)** - End-user guide NEW!
 - **[FARERULE_QUICKREF.md](./FARERULE_QUICKREF.md)** - Fare Rules quick reference ⚡
 - **[FARERULE_INTEGRATION_COMPLETE.md](./FARERULE_INTEGRATION_COMPLETE.md)** - Complete fare rules guide
 - **[FLIGHT_SEARCH_QUICKREF.md](./FLIGHT_SEARCH_QUICKREF.md)** - Flight Search quick reference
@@ -136,11 +154,18 @@ node test-fare-rules.js
 ### Features
 ✅ Real-time flight search  
 ✅ Fare rules and policies  
+✅ Fare quote with detailed pricing  
+✅ SSR - Special Service Request ⭐ NEW!
+  - Extra baggage selection
+  - In-flight meal pre-ordering
+  - Seat selection with interactive map
+  - Support for LCC and Non-LCC airlines
 ✅ Multiple airlines and routes  
 ✅ One-way and round-trip support  
 ✅ Flexible passenger configuration  
 ✅ Baggage allowance display  
 ✅ Cancellation policy details  
+✅ 3-step booking wizard NEW!  
 
 ## API Documentation
 
@@ -158,6 +183,34 @@ node test-fare-rules.js
   ```
 
 - POST `/api/flights/fare-rules` - Get fare rules for a flight
+  ```json
+  {
+    "traceId": "trace-id-from-search",
+    "resultIndex": "result-index-from-search"
+  }
+  ```
+
+- POST `/api/flights/fare-quote` - Get detailed fare quote
+  ```json
+  {
+    "traceId": "trace-id-from-search",
+    "resultIndex": "result-index-from-search"
+  }
+  ```
+
+- POST `/api/flights/ssr` - Get SSR options (baggage, meals, seats) ⭐ NEW!
+  ```json
+  {
+    "traceId": "trace-id-from-search",
+    "resultIndex": "result-index-from-search"
+  }
+  ```
+  Or for air amendment after booking:
+  ```json
+  {
+    "bookingId": 1599626
+  }
+  ```
   ```json
   {
     "traceId": "f140170f-2b71-4b51-9cec-423a8f0bfef3",

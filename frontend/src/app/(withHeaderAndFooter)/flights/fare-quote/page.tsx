@@ -123,39 +123,51 @@ export default function FareQuotePage() {
 
   useEffect(() => {
     const fetchFareQuote = async () => {
-      // Try to get params from URL searchParams first
-      let traceId = searchParams.get('traceId');
-      let resultIndex = searchParams.get('resultIndex');
-      
-      // If not in URL, try localStorage
-      if (!traceId || !resultIndex) {
-        const storedParams = localStorage.getItem('fareQuoteParams');
-        if (storedParams) {
-          try {
-            const params = JSON.parse(storedParams);
-            traceId = params.traceId;
-            resultIndex = params.resultIndex;
-            // Clear after reading
-            localStorage.removeItem('fareQuoteParams');
-          } catch (e) {
-            console.error('Error parsing stored params:', e);
+      try {
+        // Try to get params from URL searchParams first
+        let traceId = searchParams.get('traceId');
+        let resultIndex = searchParams.get('resultIndex');
+        
+        console.log('[FareQuote] Initial params from URL:', { traceId, resultIndex });
+        
+        // If not in URL, try localStorage
+        if (!traceId || !resultIndex) {
+          const storedParams = localStorage.getItem('fareQuoteParams');
+          console.log('[FareQuote] Checking localStorage:', storedParams);
+          
+          if (storedParams) {
+            try {
+              const params = JSON.parse(storedParams);
+              traceId = params.traceId;
+              resultIndex = params.resultIndex;
+              console.log('[FareQuote] Params from localStorage:', { traceId, resultIndex });
+              // DON'T clear localStorage here - wait until successful fetch
+            } catch (e) {
+              console.error('Error parsing stored params:', e);
+            }
           }
         }
-      }
-      
-      // If still no params after checking both sources, just show loading
-      // (This handles the case of page refresh or direct access)
-      if (!traceId || !resultIndex) {
-        setLoading(false);
-        setError('No flight selected. Please select a flight from the search results.');
-        return;
-      }
+        
+        console.log('[FareQuote] Final params:', { traceId, resultIndex });
+        
+        // If still no params after checking both sources, show error
+        if (!traceId || !resultIndex) {
+          console.log('[FareQuote] No params found, showing error');
+          setError('No flight selected. Please select a flight from the search results.');
+          setLoading(false);
+          return;
+        }
 
-      // Store for later use
-      setStoredTraceId(traceId);
-      setStoredResultIndex(resultIndex);
+        // If we have params, clear any previous error and continue loading
+        console.log('[FareQuote] Params found, fetching data...');
+        setError(null);
 
-      try {
+        // Store for later use
+        setStoredTraceId(traceId);
+        setStoredResultIndex(resultIndex);
+
+        // Fetch fare quote data
+        // Fetch fare quote data
         const response = await flightsAPI.getFareQuote({
           traceId,
           resultIndex,
@@ -188,6 +200,10 @@ export default function FareQuotePage() {
           };
           setFareQuote(enrichedFareData);
           setError(null); // Clear any previous errors
+          
+          // Clear localStorage only after successful fetch
+          localStorage.removeItem('fareQuoteParams');
+          console.log('[FareQuote] Data fetched successfully, localStorage cleared');
         } else {
           // Check for error in response
           const errorObj = apiData.error || apiData.response?.Error || {};
@@ -239,12 +255,22 @@ export default function FareQuotePage() {
   };
 
   const handleProceedToBooking = () => {
-    // Store in localStorage to avoid 431 error
+    // Get passenger counts from URL or localStorage
+    const adults = searchParams.get('adults') || '1';
+    const children = searchParams.get('children') || '0';
+    const infants = searchParams.get('infants') || '0';
+    
+    // Store in localStorage as backup to avoid 431 error
     localStorage.setItem('bookingParams', JSON.stringify({
       traceId: storedTraceId,
-      resultIndex: storedResultIndex
+      resultIndex: storedResultIndex,
+      adults: parseInt(adults),
+      children: parseInt(children),
+      infants: parseInt(infants)
     }));
-    router.push('/book-flight');
+    
+    // Navigate to the new flight-booking page with SSR integration
+    router.push(`/flight-booking?traceId=${encodeURIComponent(storedTraceId)}&resultIndex=${encodeURIComponent(storedResultIndex)}&adults=${adults}&children=${children}&infants=${infants}`);
   };
 
   // Show loader while loading

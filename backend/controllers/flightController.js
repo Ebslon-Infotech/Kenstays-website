@@ -300,6 +300,76 @@ exports.getFlights = async (req, res) => {
   }
 };
 
+// @desc    Get SSR (Special Service Request) for baggage, meals, and seats
+// @route   POST /api/flights/ssr
+// @access  Public
+exports.getSSR = async (req, res) => {
+  try {
+    const {
+      traceId,
+      resultIndex,
+      bookingId
+    } = req.body;
+
+    // Validate required fields
+    // Either (traceId and resultIndex) for initial SSR OR bookingId for air amendment
+    if (!bookingId && (!traceId || !resultIndex)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Either (TraceId and ResultIndex) or BookingId are required'
+      });
+    }
+
+    // Get user's token if logged in, otherwise use cached token
+    let tokenId;
+    if (req.user && req.user.tekTravelsToken) {
+      // Check if user's token is expired
+      if (req.user.tekTravelsTokenExpiry && new Date(req.user.tekTravelsTokenExpiry) > new Date()) {
+        tokenId = req.user.tekTravelsToken;
+      } else {
+        // Renew token
+        const endUserIp = tekTravelsService.getClientIP(req);
+        const authResult = await tekTravelsService.authenticate(endUserIp);
+        tokenId = authResult.TokenId;
+        
+        // Update user's token in database
+        req.user.tekTravelsToken = tokenId;
+        req.user.tekTravelsTokenExpiry = new Date(authResult.expiresAt);
+        await req.user.save();
+      }
+    } else {
+      // Use cached token or authenticate
+      tokenId = tekTravelsService.getCachedToken();
+      if (!tokenId) {
+        const endUserIp = tekTravelsService.getClientIP(req);
+        const authResult = await tekTravelsService.authenticate(endUserIp);
+        tokenId = authResult.TokenId;
+      }
+    }
+
+    // Get SSR
+    const ssrResult = await tekTravelsService.getSSR({
+      tokenId,
+      endUserIp: tekTravelsService.getClientIP(req),
+      traceId,
+      resultIndex,
+      bookingId
+    });
+
+    res.status(200).json({
+      success: true,
+      data: ssrResult
+    });
+
+  } catch (error) {
+    console.error('SSR error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error getting SSR'
+    });
+  }
+};
+
 // @desc    Get single flight
 // @route   GET /api/flights/:id
 // @access  Public
