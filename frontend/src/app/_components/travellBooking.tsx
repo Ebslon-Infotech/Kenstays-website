@@ -111,7 +111,7 @@ export default function TravelBooking() {
         children: "0",
       });
 
-      router.push(`/hotels/search-results?${params.toString()}`);
+      router.push(`/hotels?${params.toString()}`);
     } catch (error) {
       console.error("Error searching hotels:", error);
     }

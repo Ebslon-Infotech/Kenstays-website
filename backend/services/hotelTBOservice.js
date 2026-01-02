@@ -20,6 +20,8 @@ const TEKTRAVELS_END_USER_IP =
 const STATIC_API_AUTH_HEADER = "Basic VEJPU3RhdGljQVBJVGVzdDpUYm9AMTE1MzA4MTg=";
 
 let cachedToken = null;
+let cachedMember = null;
+let cachedAgency = null;
 let tokenExpiryTime = null;
 
 /**
@@ -30,7 +32,12 @@ const authenticate = async () => {
   try {
     // Return cached token if valid
     if (cachedToken && tokenExpiryTime && Date.now() < tokenExpiryTime) {
-      return { success: true, TokenId: cachedToken };
+      return {
+        success: true,
+        TokenId: cachedToken,
+        Member: cachedMember,
+        Agency: cachedAgency,
+      };
     }
 
     console.log("Authenticating with TBO Hotel API...");
@@ -47,6 +54,9 @@ const authenticate = async () => {
 
     if (response.data && response.data.TokenId) {
       cachedToken = response.data.TokenId;
+      cachedMember = response.data.Member;
+      cachedAgency = response.data.Agency;
+
       // Set expiry (24 hours typically, but let's be safe with end of day or 23h)
       const now = new Date();
       tokenExpiryTime = new Date(
@@ -62,8 +72,8 @@ const authenticate = async () => {
       return {
         success: true,
         TokenId: cachedToken,
-        Member: response.data.Member,
-        Agency: response.data.Agency,
+        Member: cachedMember,
+        Agency: cachedAgency,
       };
     } else {
       throw new Error("Invalid authentication response");
@@ -213,14 +223,34 @@ const getHotelDetails = async (hotelCode, language = "EN") => {
  */
 const searchHotels = async (searchParams) => {
   try {
-    const auth = await authenticate();
+    // Authenticate and get cached or new credentials
+    let auth = await authenticate();
+
+    // Safety check: Ensure Agency details are present
+    if (!auth || !auth.Agency) {
+      console.warn(
+        "Auth object missing Agency details. Retrying authentication..."
+      );
+      // Force clear cache and retry once
+      cachedToken = null;
+      cachedMember = null;
+      cachedAgency = null;
+      tokenExpiryTime = null;
+      auth = await authenticate();
+
+      if (!auth || !auth.Agency) {
+        throw new Error(
+          "Authentication failed to retrieve Agency details from TBO."
+        );
+      }
+    }
 
     // Construct payload based on user's Postman example
     const payload = {
-      CheckIn: searchParams.checkIn, // "2024-06-20"
-      CheckOut: searchParams.checkOut, // "2024-06-22"
-      HotelCodes: searchParams.hotelCodes || undefined, // e.g. "1279415"
-      CityId: searchParams.cityId, // Important if HotelCodes not provided
+      CheckIn: searchParams.checkIn,
+      CheckOut: searchParams.checkOut,
+      HotelCodes: searchParams.hotelCodes || undefined,
+      CityId: searchParams.cityId,
       ClientId: TEKTRAVELS_CLIENT_ID,
       EndUserIp: TEKTRAVELS_END_USER_IP,
       TokenAgencyId: auth.Agency.AgencyId,
@@ -256,7 +286,10 @@ const searchHotels = async (searchParams) => {
 
     return response.data;
   } catch (error) {
-    console.error("SearchHotels Error:", error.response?.data || error.message);
+    console.error("SearchHotels Error Detailed:", error);
+    if (error.response) {
+      console.error("Response Data:", error.response.data);
+    }
     throw error;
   }
 };
