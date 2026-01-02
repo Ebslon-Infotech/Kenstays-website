@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Select from "react-select";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+
+const Select = dynamic(() => import("react-select"), { ssr: false });
 
 import Flight from "@/assets/Homepage/flightBanner.webp";
 import HotelBanner from "@/assets/Homepage/hotelBanner.webp";
@@ -71,19 +73,45 @@ export default function TravelBooking() {
   });
 
   // Handle hotel search submission
+  // Handle hotel search submission
   const handleHotelSearch = async () => {
-    // API call logic here
     try {
-      console.log("Searching hotels with:", hotelForm);
-      // Example API call
-      // const response = await fetch('YOUR_API_ENDPOINT', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(hotelForm)
-      // });
+      if (!hotelForm.location) {
+        alert("Please enter a location");
+        return;
+      }
 
-      // Navigate or handle response
-      // router.push('/hotels/search-results');
+      // In a real app we'd need to map the location name to a CityCode or HotelCode first.
+      // For this demo, let's assume we search by providing a valid CityCode or similar requirement if API enforces it.
+      // Or we send the location string to backend and backend resolves it.
+
+      // Construct search payload matching what our backend controller expects
+      const searchPayload = {
+        checkIn: hotelForm.checkIn,
+        checkOut: hotelForm.checkOut,
+        cityId: "130443", // Mocking a CityCode for 'Delhi' or similar for now as we don't have a City Auto-suggest yet
+        guestNationality: "IN",
+        paxRooms: [
+          {
+            Adults: 1, // Defaulting for simple search
+            Children: 0,
+          },
+        ],
+      };
+
+      console.log("Searching hotels with:", searchPayload);
+
+      // We redirect to a search results page with query params so the results page can fetch data
+      // OR we fetch here and pass data. Usually query params are better for distinct URLs.
+      const params = new URLSearchParams({
+        cityId: "130443",
+        checkIn: hotelForm.checkIn,
+        checkOut: hotelForm.checkOut,
+        adults: "1",
+        children: "0",
+      });
+
+      router.push(`/hotels/search-results?${params.toString()}`);
     } catch (error) {
       console.error("Error searching hotels:", error);
     }
