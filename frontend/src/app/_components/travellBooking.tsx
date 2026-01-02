@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Select from "react-select";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+
+const Select = dynamic(() => import("react-select"), { ssr: false });
 
 import Flight from "@/assets/Homepage/flightBanner.webp";
 import HotelBanner from "@/assets/Homepage/hotelBanner.webp";
@@ -48,7 +50,7 @@ export default function TravelBooking() {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeMenuTab, setActiveMenuTab] = useState("Flight");
-  
+
   // Flight search form state
   const [flightForm, setFlightForm] = useState<FlightFormData>({
     origin: "DEL",
@@ -58,12 +60,66 @@ export default function TravelBooking() {
     adults: 1,
     children: 0,
     infants: 0,
-    cabinClass: 2
+    cabinClass: 2,
   });
-  
+
+  // Hotel search form state
+  const [hotelForm, setHotelForm] = useState({
+    location: "",
+    propertyType: null,
+    checkIn: new Date().toISOString().split("T")[0],
+    checkOut: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+    guests: null,
+  });
+
+  // Handle hotel search submission
+  // Handle hotel search submission
+  const handleHotelSearch = async () => {
+    try {
+      if (!hotelForm.location) {
+        alert("Please enter a location");
+        return;
+      }
+
+      // In a real app we'd need to map the location name to a CityCode or HotelCode first.
+      // For this demo, let's assume we search by providing a valid CityCode or similar requirement if API enforces it.
+      // Or we send the location string to backend and backend resolves it.
+
+      // Construct search payload matching what our backend controller expects
+      const searchPayload = {
+        checkIn: hotelForm.checkIn,
+        checkOut: hotelForm.checkOut,
+        cityId: "130443", // Mocking a CityCode for 'Delhi' or similar for now as we don't have a City Auto-suggest yet
+        guestNationality: "IN",
+        paxRooms: [
+          {
+            Adults: 1, // Defaulting for simple search
+            Children: 0,
+          },
+        ],
+      };
+
+      console.log("Searching hotels with:", searchPayload);
+
+      // We redirect to a search results page with query params so the results page can fetch data
+      // OR we fetch here and pass data. Usually query params are better for distinct URLs.
+      const params = new URLSearchParams({
+        cityId: "130443",
+        checkIn: hotelForm.checkIn,
+        checkOut: hotelForm.checkOut,
+        adults: "1",
+        children: "0",
+      });
+
+      router.push(`/hotels?${params.toString()}`);
+    } catch (error) {
+      console.error("Error searching hotels:", error);
+    }
+  };
+
   const [selectedTravelersClass, setSelectedTravelersClass] = useState<any>({
     value: "1 Adult, Economy",
-    label: "1 Adult, Economy"
+    label: "1 Adult, Economy",
   });
 
   const menulist = [
@@ -82,11 +138,11 @@ export default function TravelBooking() {
       setActiveIndex(menuIndex);
     }
   }, [type]);
-  
+
   // Handle flight search submission
   const handleFlightSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const params = new URLSearchParams({
       origin: flightForm.origin,
       destination: flightForm.destination,
@@ -95,48 +151,48 @@ export default function TravelBooking() {
       children: flightForm.children.toString(),
       infants: flightForm.infants.toString(),
       cabinClass: flightForm.cabinClass.toString(),
-      directFlight: selectedOptions.has("direct").toString()
+      directFlight: selectedOptions.has("direct").toString(),
     });
-    
+
     if (flightForm.returnDate) {
       params.append("returnDate", flightForm.returnDate);
     }
-    
+
     router.push(`/flights/search-results?${params.toString()}`);
   };
-  
+
   // Update travelers and class selection
   const handleTravelersClassChange = (selectedOption: any) => {
     setSelectedTravelersClass(selectedOption);
-    
+
     // Parse the selection (e.g., "2 Adults, 1 Child, Business")
     const value = selectedOption.value;
     const parts = value.split(", ");
-    
+
     // Extract adults/children/infants
     parts.forEach((part: string) => {
       if (part.includes("Adult")) {
         const count = parseInt(part);
-        setFlightForm(prev => ({ ...prev, adults: count }));
+        setFlightForm((prev) => ({ ...prev, adults: count }));
       } else if (part.includes("Child")) {
         const count = parseInt(part);
-        setFlightForm(prev => ({ ...prev, children: count }));
+        setFlightForm((prev) => ({ ...prev, children: count }));
       } else if (part.includes("Infant")) {
         const count = parseInt(part);
-        setFlightForm(prev => ({ ...prev, infants: count }));
+        setFlightForm((prev) => ({ ...prev, infants: count }));
       }
     });
-    
+
     // Extract cabin class
     if (value.includes("Economy")) {
-      setFlightForm(prev => ({ ...prev, cabinClass: 2 }));
+      setFlightForm((prev) => ({ ...prev, cabinClass: 2 }));
     } else if (value.includes("Business")) {
-      setFlightForm(prev => ({ ...prev, cabinClass: 4 }));
+      setFlightForm((prev) => ({ ...prev, cabinClass: 4 }));
     } else if (value.includes("First")) {
-      setFlightForm(prev => ({ ...prev, cabinClass: 6 }));
+      setFlightForm((prev) => ({ ...prev, cabinClass: 6 }));
     }
   };
-  
+
   // Travelers & Class options
   const travelersClassOptions = [
     { value: "1 Adult, Economy", label: "1 Adult, Economy" },
@@ -144,8 +200,14 @@ export default function TravelBooking() {
     { value: "3 Adults, Economy", label: "3 Adults, Economy" },
     { value: "4 Adults, Economy", label: "4 Adults, Economy" },
     { value: "1 Adult, 1 Child, Economy", label: "1 Adult, 1 Child, Economy" },
-    { value: "2 Adults, 1 Child, Economy", label: "2 Adults, 1 Child, Economy" },
-    { value: "2 Adults, 2 Children, Economy", label: "2 Adults, 2 Children, Economy" },
+    {
+      value: "2 Adults, 1 Child, Economy",
+      label: "2 Adults, 1 Child, Economy",
+    },
+    {
+      value: "2 Adults, 2 Children, Economy",
+      label: "2 Adults, 2 Children, Economy",
+    },
     { value: "1 Adult, Business", label: "1 Adult, Business" },
     { value: "2 Adults, Business", label: "2 Adults, Business" },
     { value: "1 Adult, First", label: "1 Adult, First Class" },
@@ -173,7 +235,7 @@ export default function TravelBooking() {
           ["one-way", "round-trip", "multi-city"].forEach((tripType) => {
             newSelected.delete(tripType);
           });
-          
+
           // Clear return date if switching to one-way
           if (id === "one-way") {
             setFlightForm({ ...flightForm, returnDate: "" });
@@ -247,9 +309,7 @@ export default function TravelBooking() {
         </div>
         <h1
           className={`text-start text-[3.35rem] leading-[2.8rem] font-medium ${
-            type === "Flight" 
-              ? "text-secondarycolor" 
-              : "text-white"
+            type === "Flight" ? "text-secondarycolor" : "text-white"
           }  capitalize`}
           style={{ fontFamily: "var(--font-playfair-display)" }}
         >
@@ -369,7 +429,12 @@ export default function TravelBooking() {
                     <input
                       type="text"
                       value={flightForm.origin}
-                      onChange={(e) => setFlightForm({ ...flightForm, origin: e.target.value.toUpperCase() })}
+                      onChange={(e) =>
+                        setFlightForm({
+                          ...flightForm,
+                          origin: e.target.value.toUpperCase(),
+                        })
+                      }
                       placeholder="Airport Code (e.g., DEL)"
                       required
                       maxLength={3}
@@ -377,10 +442,17 @@ export default function TravelBooking() {
                     />
                   </div>
 
-                  <span className="text-gray-600 cursor-pointer" onClick={() => {
-                    const temp = flightForm.origin;
-                    setFlightForm({ ...flightForm, origin: flightForm.destination, destination: temp });
-                  }}>
+                  <span
+                    className="text-gray-600 cursor-pointer"
+                    onClick={() => {
+                      const temp = flightForm.origin;
+                      setFlightForm({
+                        ...flightForm,
+                        origin: flightForm.destination,
+                        destination: temp,
+                      });
+                    }}
+                  >
                     <LuArrowRightLeft size={24} />
                   </span>
                   {/* To */}
@@ -392,7 +464,12 @@ export default function TravelBooking() {
                     <input
                       type="text"
                       value={flightForm.destination}
-                      onChange={(e) => setFlightForm({ ...flightForm, destination: e.target.value.toUpperCase() })}
+                      onChange={(e) =>
+                        setFlightForm({
+                          ...flightForm,
+                          destination: e.target.value.toUpperCase(),
+                        })
+                      }
                       placeholder="Airport Code (e.g., DXB)"
                       required
                       maxLength={3}
@@ -410,13 +487,18 @@ export default function TravelBooking() {
                     <input
                       type="date"
                       value={flightForm.departureDate}
-                      onChange={(e) => setFlightForm({ ...flightForm, departureDate: e.target.value })}
+                      onChange={(e) =>
+                        setFlightForm({
+                          ...flightForm,
+                          departureDate: e.target.value,
+                        })
+                      }
                       min={new Date().toISOString().split("T")[0]}
                       required
                       className="w-full p-[0.74rem] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                     />
                   </div>
-                  
+
                   {/* Return Date - Only show if round-trip selected */}
                   {selectedOptions.has("round-trip") && (
                     <div className="relative w-full">
@@ -426,7 +508,12 @@ export default function TravelBooking() {
                       <input
                         type="date"
                         value={flightForm.returnDate}
-                        onChange={(e) => setFlightForm({ ...flightForm, returnDate: e.target.value })}
+                        onChange={(e) =>
+                          setFlightForm({
+                            ...flightForm,
+                            returnDate: e.target.value,
+                          })
+                        }
                         min={flightForm.departureDate}
                         className="w-full p-[0.74rem] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                       />
@@ -512,7 +599,7 @@ export default function TravelBooking() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Search Button */}
               <div className="flex justify-center mt-5">
                 <button
@@ -535,6 +622,10 @@ export default function TravelBooking() {
                 <input
                   type="text"
                   placeholder="Area, Landmark or Property Name"
+                  value={hotelForm.location}
+                  onChange={(e) =>
+                    setHotelForm({ ...hotelForm, location: e.target.value })
+                  }
                   className="w-full p-[0.74rem] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
@@ -547,21 +638,25 @@ export default function TravelBooking() {
                   instanceId="hotel-property-type"
                   options={[
                     {
-                      value: "1 Passenger, Economy",
-                      label: "1 Passenger, Economy",
+                      value: "Hotel",
+                      label: "Hotel",
                     },
                     {
-                      value: "2 Passengers, Economy",
-                      label: "2 Passengers, Economy",
+                      value: "Resort",
+                      label: "Resort",
                     },
                     {
-                      value: "1 Passenger, Business",
-                      label: "1 Passenger, Business",
+                      value: "Homestay",
+                      label: "Homestay",
                     },
                   ]}
+                  value={hotelForm.propertyType}
+                  onChange={(option: any) =>
+                    setHotelForm({ ...hotelForm, propertyType: option })
+                  }
                   placeholder="Select Property Type"
                   isSearchable={false}
-                  required
+                  // required // React-select doesn't support required prop directly in the same way
                   className="w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none"
                   styles={{
                     control: (styles, { isFocused }) => ({
@@ -634,11 +729,14 @@ export default function TravelBooking() {
                 </label>
                 <input
                   type="date"
-                  defaultValue="2024-01-18"
+                  value={hotelForm.checkIn}
+                  onChange={(e) =>
+                    setHotelForm({ ...hotelForm, checkIn: e.target.value })
+                  }
+                  min={new Date().toISOString().split("T")[0]}
                   className="w-full p-[0.74rem] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                 />
               </div>
-
 
               <div className="relative w-full">
                 <label className="absolute -top-2 left-2 text-xs text-gray-500 bg-white px-1">
@@ -646,11 +744,14 @@ export default function TravelBooking() {
                 </label>
                 <input
                   type="date"
-                  defaultValue="2024-01-18"
+                  value={hotelForm.checkOut}
+                  onChange={(e) =>
+                    setHotelForm({ ...hotelForm, checkOut: e.target.value })
+                  }
+                  min={hotelForm.checkIn}
                   className="w-full p-[0.74rem] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
                 />
               </div>
-
 
               <div className="relative w-full">
                 <label className="absolute -top-2 left-2 text-xs text-gray-500 bg-white px-1 z-10">
@@ -660,21 +761,24 @@ export default function TravelBooking() {
                   instanceId="hotel-guest-rooms"
                   options={[
                     {
-                      value: "1 Passenger, Economy",
-                      label: "1 Passenger, Economy",
+                      value: "1 Room, 1 Guest",
+                      label: "1 Room, 1 Guest",
                     },
                     {
-                      value: "2 Passengers, Economy",
-                      label: "2 Passengers, Economy",
+                      value: "1 Room, 2 Guests",
+                      label: "1 Room, 2 Guests",
                     },
                     {
-                      value: "1 Passenger, Business",
-                      label: "1 Passenger, Business",
+                      value: "2 Rooms, 4 Guests",
+                      label: "2 Rooms, 4 Guests",
                     },
                   ]}
+                  value={hotelForm.guests}
+                  onChange={(option: any) =>
+                    setHotelForm({ ...hotelForm, guests: option })
+                  }
                   placeholder="Select guest & rooms"
                   isSearchable={false}
-                  required
                   className="w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none"
                   styles={{
                     control: (styles, { isFocused }) => ({
@@ -1039,15 +1143,15 @@ export default function TravelBooking() {
           {/* Trip Type and Direct Flights */}
 
           {/* Show Hotels/Homestays/Holidays Buttons */}
-          {activeMenuTab === "Hotel"  && (
+          {activeMenuTab === "Hotel" && (
             <div className="flex justify-center mt-5">
-              <Link
-                href="/hotels"
-                className="mt-6 w-fit bg-secondarycolor text-white px-6 py-3 rounded-md flex items-center justify-center gap-2 transition-colors"
+              <button
+                onClick={handleHotelSearch}
+                className="mt-6 w-fit bg-secondarycolor text-white px-6 py-3 rounded-md flex items-center justify-center gap-2 transition-colors hover:bg-opacity-90"
               >
                 <FaPaperPlane className="h-5 w-5" />
                 Show Hotels
-              </Link>
+              </button>
             </div>
           )}
 
