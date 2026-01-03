@@ -1,32 +1,43 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import Select from "react-select";
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-import Promo from "@/components/promo";
-import AirIndia from "@/assets/Flight/AirIndia.webp";
-import AirIndia1 from "@/assets/Flight/AirIndia1.webp";
-import discover from "@/assets/Flight/discover.webp"
-import mc from "@/assets/Flight/mc.webp"
-import visa from "@/assets/Flight/visa.webp"
-import group from "@/assets/Flight/Group.webp"
+export default function BookFlightRedirect() {
+  const router = useRouter();
 
-import {
-  IoIosAirplane,
-  IoIosArrowBack,
-  IoIosArrowForward,
-  IoIosArrowDown,
-} from "react-icons/io";
-import { GoPerson } from "react-icons/go";
-import { IoMailOutline } from "react-icons/io5";
-import { BsSuitcase, BsBackpack3 } from "react-icons/bs";
-import { PiSuitcaseRollingLight } from "react-icons/pi";
-import { TbPhoneCall } from "react-icons/tb";
-import { CiCreditCard1 } from "react-icons/ci";
+  useEffect(() => {
+    // Check if there's booking data in localStorage
+    const bookingParams = localStorage.getItem('bookingParams');
+    
+    if (bookingParams) {
+      try {
+        const params = JSON.parse(bookingParams);
+        // Redirect to the new flight-booking page with SSR integration
+        router.push(`/flight-booking?traceId=${encodeURIComponent(params.traceId)}&resultIndex=${encodeURIComponent(params.resultIndex)}&adults=${params.adults || 1}&children=${params.children || 0}&infants=${params.infants || 0}`);
+      } catch (e) {
+        console.error('Failed to parse booking params:', e);
+        // Redirect to flights search if params are invalid
+        router.push('/flights');
+      }
+    } else {
+      // If no booking data, redirect to flights search
+      router.push('/flights');
+    }
+  }, [router]);
 
-export default function page() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Redirecting to booking page...</p>
+        <p className="text-sm text-gray-500 mt-2">
+          The booking flow has been updated with new features!
+        </p>
+      </div>
+    </div>
+  );
+}
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState("flexible");
   const [contactEmail, setContactEmail] = useState(

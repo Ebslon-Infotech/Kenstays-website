@@ -275,6 +275,17 @@ export const flightsAPI = {
     });
   },
 
+  getSSR: async (params: {
+    traceId?: string;
+    resultIndex?: string;
+    bookingId?: number;
+  }) => {
+    return await apiCall('/flights/ssr', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  },
+
   getAll: async (filters?: any) => {
     const queryParams = new URLSearchParams(filters).toString();
     return await apiCall(`/flights?${queryParams}`);

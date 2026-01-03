@@ -468,13 +468,21 @@ export default function FlightSearchResults() {
                       </div>
                       <button
                         onClick={() => {
+                          // Get passenger counts for passing forward
+                          const adults = searchParams.get("adults") || "1";
+                          const children = searchParams.get("children") || "0";
+                          const infants = searchParams.get("infants") || "0";
+                          
                           // Store in localStorage to avoid 431 error with long URLs
                           localStorage.setItem('fareDetailsParams', JSON.stringify({
                             resultIndex: flight.ResultIndex,
                             traceId: traceId,
-                            flightData: flight
+                            flightData: flight,
+                            adults: parseInt(adults),
+                            children: parseInt(children),
+                            infants: parseInt(infants)
                           }));
-                          window.location.href = '/flights/fare-details';
+                          window.location.href = `/flights/fare-details?adults=${adults}&children=${children}&infants=${infants}`;
                         }}
                         className="bg-secondarycolor text-white px-8 py-3 rounded-md hover:bg-opacity-90 transition-colors font-semibold"
                       >

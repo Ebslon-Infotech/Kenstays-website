@@ -432,12 +432,20 @@ export default function FareDetailsPage() {
             </button>
             <button
               onClick={() => {
+                // Get passenger counts from URL
+                const adults = searchParams.get('adults') || '1';
+                const children = searchParams.get('children') || '0';
+                const infants = searchParams.get('infants') || '0';
+                
                 // Store data in localStorage to avoid 431 error from long URL
                 localStorage.setItem('fareQuoteParams', JSON.stringify({
                   resultIndex: resultIndex,
-                  traceId: traceId
+                  traceId: traceId,
+                  adults: parseInt(adults),
+                  children: parseInt(children),
+                  infants: parseInt(infants)
                 }));
-                router.push('/flights/fare-quote');
+                router.push(`/flights/fare-quote?adults=${adults}&children=${children}&infants=${infants}`);
               }}
               className="px-8 py-3 bg-secondarycolor text-white rounded-md hover:bg-opacity-90 transition-colors font-semibold"
             >
