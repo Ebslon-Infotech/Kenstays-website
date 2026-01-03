@@ -143,6 +143,13 @@ export const hotelsAPI = {
     });
   },
 
+  browse: async (cityId: string) => {
+    return await apiCall("/hotels/browse", {
+      method: "POST",
+      body: JSON.stringify({ CityCode: cityId }),
+    });
+  },
+
   getAll: async (filters?: any) => {
     const queryParams = new URLSearchParams(filters).toString();
     return await apiCall(`/hotels?${queryParams}`);
@@ -179,6 +186,13 @@ export const hotelsAPI = {
     return await apiCall(`/hotels/${id}/reviews`, {
       method: "POST",
       body: JSON.stringify(review),
+    });
+  },
+
+  getDetails: async (hotelCode: string, language = "EN") => {
+    return await apiCall("/hotels/static/hotel-details", {
+      method: "POST",
+      body: JSON.stringify({ Hotelcodes: hotelCode, Language: language }),
     });
   },
 };
