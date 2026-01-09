@@ -11,6 +11,13 @@ connectDB();
 
 const app = express();
 
+// Increase request timeout for long-running API calls (3 minutes for slow TekTravels API)
+app.use((req, res, next) => {
+  req.setTimeout(180000); // 3 minutes
+  res.setTimeout(180000); // 3 minutes
+  next();
+});
+
 // Middleware
 app.use(cors({
   origin: 'http://localhost:3000',

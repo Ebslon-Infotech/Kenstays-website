@@ -5,7 +5,7 @@
 The **SSR (Special Service Request) API** has been successfully integrated into the KenStays flight booking platform. This feature allows passengers to customize their travel experience by selecting additional services during the booking process.
 
 **Integration Date**: January 2, 2026  
-**Status**: ✅ **Production Ready**  
+**Status**: ✅ **Production Ready**   
 **API Version**: TekTravels v1.0
 
 ---

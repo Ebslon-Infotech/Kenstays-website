@@ -39,8 +39,8 @@ export const setUser = (user: any) => {
   }
 };
 
-// Generic API call function
-const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+// Generic API call function with timeout
+const apiCall = async (endpoint: string, options: RequestInit = {}, timeoutMs: number = 90000) => {
   const token = getAuthToken();
 
   const headers: HeadersInit = {
@@ -55,7 +55,16 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   };
 
   try {
-    const response = await fetch(`${API_URL}${endpoint}`, config);
+    // Create an abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...config,
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
     const data = await response.json();
 
     if (!response.ok) {
@@ -64,6 +73,9 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
     return data;
   } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout. The server is taking too long to respond. Please try again.');
+    }
     throw new Error(error.message || "Network error");
   }
 };
@@ -258,7 +270,7 @@ export const flightsAPI = {
     return await apiCall("/flights/fare-quote", {
       method: "POST",
       body: JSON.stringify(params),
-    });
+    }, 150000); // 150 seconds timeout for slow TekTravels fare quote API
   },
 
   getSSR: async (params: {
@@ -269,6 +281,198 @@ export const flightsAPI = {
     return await apiCall('/flights/ssr', {
       method: 'POST',
       body: JSON.stringify(params),
+    });
+  },
+
+  book: async (bookingParams: {
+    traceId: string;
+    resultIndex: string;
+    passengers: Array<{
+      Title: string;
+      FirstName: string;
+      LastName: string;
+      PaxType: number;
+      DateOfBirth: string;
+      Gender: number;
+      PassportNo?: string;
+      PassportExpiry?: string;
+      PassportIssueDate?: string;
+      AddressLine1: string;
+      AddressLine2?: string;
+      City: string;
+      CountryCode: string;
+      CountryName: string;
+      ContactNo: string;
+      Email: string;
+      IsLeadPax: boolean;
+      Nationality: string;
+      FFAirlineCode?: string | null;
+      FFNumber?: string;
+      GSTCompanyAddress?: string;
+      GSTCompanyContactNumber?: string;
+      GSTCompanyName?: string;
+      GSTNumber?: string;
+      GSTCompanyEmail?: string;
+      CellCountryCode?: string;
+      Fare: {
+        Currency: string;
+        BaseFare: number;
+        Tax: number;
+        YQTax: number;
+        AdditionalTxnFeePub: number;
+        AdditionalTxnFeeOfrd: number;
+        OtherCharges: number;
+        Discount: number;
+        PublishedFare: number;
+        OfferedFare: number;
+        TdsOnCommission: number;
+        TdsOnPLB: number;
+        TdsOnIncentive: number;
+        ServiceFee: number;
+      };
+      Meal?: {
+        Code: string;
+        Description: string;
+      };
+      Seat?: {
+        Code: string;
+        Description: string;
+      };
+    }>;
+  }) => {
+    return await apiCall('/flights/book', {
+      method: 'POST',
+      body: JSON.stringify(bookingParams),
+    });
+  },
+
+  ticket: async (ticketParams: {
+    traceId: string;
+    isLCC: boolean;
+    // For LCC
+    resultIndex?: string;
+    passengers?: Array<{
+      Title: string;
+      FirstName: string;
+      LastName: string;
+      PaxType: number;
+      DateOfBirth: string;
+      Gender: number;
+      PassportNo?: string;
+      PassportExpiry?: string;
+      AddressLine1: string;
+      AddressLine2?: string;
+      City: string;
+      CountryCode: string;
+      CountryName: string;
+      ContactNo: string;
+      Email: string;
+      IsLeadPax: boolean;
+      Nationality: string;
+      Fare: {
+        Currency: string;
+        BaseFare: number;
+        Tax: number;
+        YQTax: number;
+        AdditionalTxnFeePub: number;
+        AdditionalTxnFeeOfrd: number;
+        OtherCharges: number;
+        Discount: number;
+        PublishedFare: number;
+        OfferedFare: number;
+        TdsOnCommission: number;
+        TdsOnPLB: number;
+        TdsOnIncentive: number;
+        ServiceFee: number;
+      };
+      Meal?: {
+        Code: string;
+        Description: string;
+      };
+      Seat?: {
+        Code: string;
+        Description: string;
+      };
+      Baggage?: Array<{
+        WayType: number;
+        Code: string;
+        Description: number;
+        Weight: number;
+        Currency: string;
+        Price: number;
+        Origin: string;
+        Destination: string;
+      }>;
+      MealDynamic?: Array<{
+        WayType: number;
+        Code: string;
+        Description: number;
+        AirlineDescription: string;
+        Quantity: number;
+        Price: number;
+        Currency: string;
+        Origin: string;
+        Destination: string;
+      }>;
+      SeatDynamic?: Array<{
+        AirlineCode: string;
+        FlightNumber: string;
+        CraftType: string;
+        Origin: string;
+        Destination: string;
+        AvailablityType: number;
+        Description: number;
+        Code: string;
+        RowNo: string;
+        SeatNo: string | null;
+        SeatType: number;
+        SeatWayType: number;
+        Compartment: number;
+        Deck: number;
+        Currency: string;
+        Price: number;
+      }>;
+      GSTCompanyAddress?: string;
+      GSTCompanyContactNumber?: string;
+      GSTCompanyName?: string;
+      GSTNumber?: string;
+      GSTCompanyEmail?: string;
+    }>;
+    // For Non-LCC
+    pnr?: string;
+    bookingId?: number;
+    passport?: Array<{
+      PaxId: number;
+      PassportNo: string;
+      PassportExpiry: string;
+      DateOfBirth: string;
+    }>;
+    isPriceChangeAccepted?: boolean;
+  }) => {
+    return await apiCall('/flights/ticket', {
+      method: 'POST',
+      body: JSON.stringify(ticketParams),
+    });
+  },
+
+  // Get booking details - retrieve existing booking information
+  getBookingDetails: async (params: {
+    bookingId?: number;
+    pnr?: string;
+    firstName?: string;
+    lastName?: string;
+    traceId?: string;
+  }) => {
+    // Build query string from provided parameters
+    const queryParams = new URLSearchParams();
+    if (params.bookingId) queryParams.append('bookingId', params.bookingId.toString());
+    if (params.pnr) queryParams.append('pnr', params.pnr);
+    if (params.firstName) queryParams.append('firstName', params.firstName);
+    if (params.lastName) queryParams.append('lastName', params.lastName);
+    if (params.traceId) queryParams.append('traceId', params.traceId);
+
+    return await apiCall(`/flights/booking-details?${queryParams.toString()}`, {
+      method: 'GET',
     });
   },
 

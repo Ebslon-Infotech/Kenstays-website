@@ -100,14 +100,46 @@ const bookingSchema = new mongoose.Schema({
     resultIndex: String,
     bookingId: Number,
     pnr: String,
+    airlinePnr: String,
     ticketStatus: {
       type: String,
       enum: ['not_booked', 'booked', 'ticketed', 'cancelled'],
       default: 'not_booked'
     },
     invoiceId: String,
+    invoiceCreatedOn: Date,
+    lastTicketDate: Date,
+    // Book response specific fields
+    isPriceChanged: {
+      type: Boolean,
+      default: false
+    },
+    isTimeChanged: {
+      type: Boolean,
+      default: false
+    },
+    ssrDenied: {
+      type: Boolean,
+      default: false
+    },
+    ssrMessage: String,
+    bookingStatus: {
+      type: Number,
+      // Status codes: 0=NotSet, 1=Successful, 2=Failed, 3=OtherFare, 4=OtherClass, 5=BookedOther, 6=NotConfirmed
+    },
+    isDomestic: Boolean,
+    source: Number, // Airline Source
+    origin: String,
+    destination: String,
+    airlineCode: String,
+    validatingAirlineCode: String,
+    airlineRemarks: String,
+    isLCC: Boolean,
+    nonRefundable: Boolean,
+    fareType: String,
     // Store fare quote data
     fareBreakup: {
+      currency: String,
       baseFare: Number,
       tax: Number,
       yqTax: Number,
@@ -117,21 +149,93 @@ const bookingSchema = new mongoose.Schema({
       discount: Number,
       publishedFare: Number,
       offeredFare: Number,
+      commissionEarned: Number,
+      plbEarned: Number,
+      incentiveEarned: Number,
+      tdsOnCommission: Number,
+      tdsOnPLB: Number,
+      tdsOnIncentive: Number,
+      serviceFee: Number,
       totalBaggageCharges: Number,
       totalMealCharges: Number,
       totalSeatCharges: Number,
       totalSSRCharges: Number
     },
+    // Passenger details as returned by Book API
+    bookingPassengers: [{
+      paxId: Number,
+      title: String,
+      firstName: String,
+      lastName: String,
+      paxType: Number,
+      dateOfBirth: Date,
+      gender: Number,
+      passportNo: String,
+      passportExpiry: Date,
+      addressLine1: String,
+      addressLine2: String,
+      city: String,
+      countryCode: String,
+      countryName: String,
+      contactNo: String,
+      email: String,
+      isLeadPax: Boolean,
+      nationality: String,
+      fare: mongoose.Schema.Types.Mixed,
+      meal: {
+        code: String,
+        description: String
+      },
+      seat: {
+        code: String,
+        description: String
+      }
+    }],
     segments: [{
+      tripIndicator: Number,
+      segmentIndicator: Number,
       origin: String,
       destination: String,
       airline: String,
+      airlineCode: String,
+      airlineName: String,
       flightNumber: String,
+      fareClass: String,
+      operatingCarrier: String,
       departureTime: Date,
       arrivalTime: Date,
       duration: Number,
-      cabinClass: String
-    }]
+      accumulatedDuration: Number,
+      groundTime: Number,
+      cabinClass: String,
+      airlinePNR: String,
+      craft: String,
+      remark: String,
+      baggage: String,
+      cabinBaggage: String,
+      flightStatus: String,
+      status: String, // Flight status code (HK, etc.)
+      terminal: {
+        departure: String,
+        arrival: String
+      }
+    }],
+    fareRules: [{
+      origin: String,
+      destination: String,
+      airline: String,
+      fareBasisCode: String,
+      fareRuleDetail: String,
+      fareRestriction: String
+    }],
+    // GST details
+    gst: {
+      companyAddress: String,
+      companyContactNumber: String,
+      companyName: String,
+      gstNumber: String,
+      companyEmail: String
+    }
   },
   totalPrice: {
     type: Number,

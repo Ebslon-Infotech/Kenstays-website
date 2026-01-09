@@ -4,14 +4,22 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { flightsAPI } from '@/lib/api';
 import SSRSelection from '@/components/SSRSelection';
+import { BookingPassenger, PassengerFormData } from '@/types/flight-booking';
 
 interface PassengerDetails {
+  title: string;
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
   dateOfBirth: string;
   passportNumber?: string;
+  passportExpiry?: string;
+  gender: number; // 1=Male, 2=Female
+  address: string;
+  city: string;
+  countryCode: string;
+  nationality: string;
 }
 
 export default function FlightBooking() {
@@ -26,6 +34,7 @@ export default function FlightBooking() {
   const [traceId, setTraceId] = useState('');
   const [resultIndex, setResultIndex] = useState('');
   const [fareQuoteData, setFareQuoteData] = useState<any>(null);
+  const [isLCC, setIsLCC] = useState<boolean>(false); // Track if flight is LCC
   
   // Passenger data
   const [passengers, setPassengers] = useState<PassengerDetails[]>([]);
@@ -44,6 +53,97 @@ export default function FlightBooking() {
     phone: '',
     countryCode: '+91'
   });
+
+  // Country code to name mapping utility
+  const countryMap: { [key: string]: { code: string; name: string } } = {
+    'IN': { code: 'IN', name: 'India' },
+    'Ind': { code: 'IN', name: 'India' },
+    'India': { code: 'IN', name: 'India' },
+    'US': { code: 'US', name: 'United States' },
+    'USA': { code: 'US', name: 'United States' },
+    'GB': { code: 'GB', name: 'United Kingdom' },
+    'UK': { code: 'GB', name: 'United Kingdom' },
+    'CA': { code: 'CA', name: 'Canada' },
+    'AU': { code: 'AU', name: 'Australia' },
+    'AE': { code: 'AE', name: 'United Arab Emirates' },
+    'UAE': { code: 'AE', name: 'United Arab Emirates' },
+    'SG': { code: 'SG', name: 'Singapore' },
+    'MY': { code: 'MY', name: 'Malaysia' },
+    'TH': { code: 'TH', name: 'Thailand' },
+    'JP': { code: 'JP', name: 'Japan' },
+    'CN': { code: 'CN', name: 'China' },
+  };
+
+  const getCountryInfo = (input: string) => {
+    const normalized = input.trim().toUpperCase();
+    const country = countryMap[normalized];
+    if (country) return country;
+    // Default fallback
+    return { code: 'IN', name: 'India' };
+  };
+
+  // Clean SSR data to only include fields required by TekTravels Ticket API
+  const cleanSSRData = (ssrItem: any, type: 'baggage' | 'meal' | 'seat') => {
+    if (!ssrItem || !ssrItem.Code) return null;
+
+    if (type === 'baggage') {
+      return {
+        AirlineCode: ssrItem.AirlineCode,
+        FlightNumber: ssrItem.FlightNumber,
+        WayType: ssrItem.WayType,
+        Code: ssrItem.Code,
+        Description: ssrItem.Description || 2, // REQUIRED - typically 2 for Direct/Purchase
+        Weight: ssrItem.Weight || 0,
+        Currency: ssrItem.Currency,
+        Price: ssrItem.Price || 0,
+        Origin: ssrItem.Origin,
+        Destination: ssrItem.Destination
+      };
+    } else if (type === 'meal') {
+      // Clean AirlineDescription - remove extra quotes if present
+      let cleanDescription = ssrItem.AirlineDescription || '';
+      if (cleanDescription.startsWith('"') && cleanDescription.endsWith('"')) {
+        cleanDescription = cleanDescription.slice(1, -1);
+      }
+      // Also remove escaped quotes
+      cleanDescription = cleanDescription.replace(/\\"/g, '"');
+      
+      return {
+        AirlineCode: ssrItem.AirlineCode,
+        FlightNumber: ssrItem.FlightNumber,
+        WayType: ssrItem.WayType,
+        Code: ssrItem.Code,
+        Description: ssrItem.Description || 2, // REQUIRED
+        AirlineDescription: cleanDescription,
+        Quantity: ssrItem.Quantity || 1,
+        Currency: ssrItem.Currency,
+        Price: ssrItem.Price || 0,
+        Origin: ssrItem.Origin,
+        Destination: ssrItem.Destination
+      };
+    } else if (type === 'seat') {
+      return {
+        AirlineCode: ssrItem.AirlineCode,
+        FlightNumber: ssrItem.FlightNumber,
+        CraftType: ssrItem.CraftType || '',
+        Origin: ssrItem.Origin,
+        Destination: ssrItem.Destination,
+        AvailablityType: ssrItem.AvailablityType || 1,
+        Description: ssrItem.Description || 2, // REQUIRED
+        Code: ssrItem.Code,
+        RowNo: ssrItem.RowNo || '',
+        SeatNo: ssrItem.SeatNo || '',
+        SeatType: ssrItem.SeatType || 0,
+        SeatWayType: ssrItem.SeatWayType || 2,
+        Compartment: ssrItem.Compartment || 1,
+        Deck: ssrItem.Deck || 1,
+        Currency: ssrItem.Currency,
+        Price: ssrItem.Price || 0
+      };
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     // Get data from URL params
@@ -66,13 +166,20 @@ export default function FlightBooking() {
     const totalPassengers = adults + children + infants;
     const initialPassengers: PassengerDetails[] = Array.from(
       { length: totalPassengers },
-      () => ({
+      (_, idx) => ({
+        title: 'Mr',
         firstName: '',
         lastName: '',
         email: '',
         phone: '',
         dateOfBirth: '',
-        passportNumber: ''
+        passportNumber: '',
+        passportExpiry: '',
+        gender: 1,
+        address: '',
+        city: '',
+        countryCode: 'US',
+        nationality: 'US'
       })
     );
     setPassengers(initialPassengers);
@@ -91,6 +198,7 @@ export default function FlightBooking() {
 
       if (response.success) {
         setFareQuoteData(response.data);
+        setIsLCC(response.data?.results?.IsLCC || false); // Set LCC flag
       } else {
         throw new Error('Failed to get fare quote');
       }
@@ -102,7 +210,7 @@ export default function FlightBooking() {
     }
   };
 
-  const handlePassengerChange = (index: number, field: keyof PassengerDetails, value: string) => {
+  const handlePassengerChange = (index: number, field: keyof PassengerDetails, value: string | number) => {
     const newPassengers = [...passengers];
     newPassengers[index] = {
       ...newPassengers[index],
@@ -114,8 +222,27 @@ export default function FlightBooking() {
   const validatePassengers = () => {
     for (let i = 0; i < passengers.length; i++) {
       const p = passengers[i];
-      if (!p.firstName || !p.lastName || !p.dateOfBirth) {
+      if (!p.title || !p.firstName || !p.lastName || !p.dateOfBirth) {
         setError(`Please fill all required fields for Passenger ${i + 1}`);
+        return false;
+      }
+      if (!p.gender || !p.address || !p.city || !p.countryCode || !p.nationality) {
+        setError(`Please complete all details for Passenger ${i + 1}`);
+        return false;
+      }
+      // Check passport requirement if international flight
+      if (fareQuoteData?.results?.IsPassportRequiredAtBook && !p.passportNumber) {
+        setError(`Passport required for Passenger ${i + 1}`);
+        return false;
+      }
+      // If passport number is provided, passport expiry must also be provided
+      if (p.passportNumber && !p.passportExpiry) {
+        setError(`Passport expiry date is required for Passenger ${i + 1} since passport number is provided`);
+        return false;
+      }
+      // If passport expiry is provided, passport number must also be provided
+      if (p.passportExpiry && !p.passportNumber) {
+        setError(`Passport number is required for Passenger ${i + 1} since passport expiry is provided`);
         return false;
       }
     }
@@ -148,20 +275,25 @@ export default function FlightBooking() {
   };
 
   const calculateTotalPrice = () => {
-    if (!fareQuoteData || !fareQuoteData.results) return 0;
-    
-    let basePrice = fareQuoteData.results.Fare?.OfferedFare || 0;
-    
-    // Add SSR charges
+    if (!fareQuoteData?.results?.Fare) return 0;
+    const baseFare = fareQuoteData.results.Fare.PublishedFare || 0;
+    // Add SSR charges if any
     const ssrCharges = ssrSelections.reduce((total, selection) => {
-      let cost = 0;
-      if (selection.baggage?.Price) cost += selection.baggage.Price;
-      if (selection.meal?.Price) cost += selection.meal.Price;
-      if (selection.seat?.Price) cost += selection.seat.Price;
-      return total + cost;
+      const mealCharge = selection?.meal?.Price || 0;
+      const seatCharge = selection?.seat?.Price || 0;
+      const baggageCharge = selection?.baggage?.Price || 0;
+      return total + mealCharge + seatCharge + baggageCharge;
     }, 0);
-    
-    return basePrice + ssrCharges;
+    return baseFare + ssrCharges;
+  };
+
+  const formatDateForAPI = (dateString: string): string => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}T00:00:00`;
   };
 
   const handleBooking = async () => {
@@ -169,13 +301,305 @@ export default function FlightBooking() {
       setLoading(true);
       setError(null);
       
-      // Here you would call the booking API
-      // For now, we'll just show a success message
+      if (!fareQuoteData || !fareQuoteData.results) {
+        throw new Error('Fare data not available');
+      }
+
+      // Check if it's an LCC flight
+      const isLCC = fareQuoteData.results.IsLCC === true;
       
-      alert('Booking functionality will be implemented with the Book API endpoint');
-      
-      // Navigate to confirmation page
-      // router.push('/booking-confirmation?bookingId=XXX');
+      console.log('=== BOOKING PROCESS ===');
+      console.log('Flight Type:', isLCC ? 'LCC (Low-Cost Carrier)' : 'Non-LCC (Full Service)');
+      console.log('TraceId:', traceId);
+      console.log('ResultIndex:', resultIndex);
+      console.log('=======================');
+
+      // Prepare passenger data for API
+      const bookingPassengers: BookingPassenger[] = passengers.map((p, idx) => {
+        // Find SSR selections for this passenger
+        const ssrSelection = ssrSelections[idx] || {};
+        
+        // Get proper country info (ISO code and full name)
+        const countryInfo = getCountryInfo(p.countryCode || 'IN');
+        const nationalityInfo = getCountryInfo(p.nationality || 'India');
+        
+        const passenger: any = {
+          Title: p.title,
+          FirstName: p.firstName,
+          LastName: p.lastName,
+          PaxType: idx < passengerCount.adults ? 1 : (idx < passengerCount.adults + passengerCount.children ? 2 : 3),
+          DateOfBirth: formatDateForAPI(p.dateOfBirth),
+          Gender: p.gender,
+          AddressLine1: p.address,
+          AddressLine2: '',
+          City: p.city,
+          CountryCode: countryInfo.code, // Use ISO 2-letter code
+          CountryName: countryInfo.name, // Use full country name
+          ContactNo: p.phone || contactDetails.phone,
+          Email: p.email || contactDetails.email,
+          IsLeadPax: idx === 0,
+          Nationality: nationalityInfo.name, // Use full country name for nationality
+          GSTCompanyAddress: '',
+          GSTCompanyContactNumber: '',
+          GSTCompanyName: '',
+          GSTNumber: '',
+          GSTCompanyEmail: '',
+          Fare: fareQuoteData.results.Fare
+        };
+
+        // Only include passport fields if both are provided
+        if (p.passportNumber && p.passportExpiry) {
+          passenger.PassportNo = p.passportNumber;
+          passenger.PassportExpiry = formatDateForAPI(p.passportExpiry);
+        }
+
+        // ===== SSR DATA MAPPING =====
+        // Map SSR selections to TekTravels API format
+        // For LCC: Include Baggage, MealDynamic, SeatDynamic, SpecialServices arrays
+        // For Non-LCC: Include simple Meal and Seat objects
+        
+        if (isLCC) {
+          // LCC Flight - Include full SSR data structures (cleaned)
+          
+          // Baggage (only include if selected - clean the data)
+          if (ssrSelection.baggage && ssrSelection.baggage.Code) {
+            const cleanedBaggage = cleanSSRData(ssrSelection.baggage, 'baggage');
+            if (cleanedBaggage) {
+              passenger.Baggage = [cleanedBaggage];
+            }
+          }
+          
+          // MealDynamic (only include if selected - clean the data)
+          if (ssrSelection.meal && ssrSelection.meal.Code) {
+            const cleanedMeal = cleanSSRData(ssrSelection.meal, 'meal');
+            if (cleanedMeal) {
+              passenger.MealDynamic = [cleanedMeal];
+            }
+          }
+          
+          // SeatDynamic (only include if selected - clean the data)
+          if (ssrSelection.seat && ssrSelection.seat.Code) {
+            const cleanedSeat = cleanSSRData(ssrSelection.seat, 'seat');
+            if (cleanedSeat) {
+              passenger.SeatDynamic = [cleanedSeat];
+            }
+          }
+          
+          // SpecialServices (optional array for services like priority checkin)
+          if (ssrSelection.specialServices && Array.isArray(ssrSelection.specialServices) && ssrSelection.specialServices.length > 0) {
+            passenger.SpecialServices = ssrSelection.specialServices;
+          }
+          
+        } else {
+          // Non-LCC Flight - DO NOT send SSR data in Book API
+          // For GDS/Non-LCC flights, SSR is handled separately after ticketing
+          // Sending Seat/Meal data causes "Invalid Seat Data" error (Error Code 3)
+          // SSR selections are only for LCC flights in the Book/Ticket flow
+        }
+
+        return passenger;
+      });
+
+      if (isLCC) {
+        // LCC Flow: Call Ticket API directly (combines Book + Ticket)
+        console.log('=== LCC FLIGHT - CALLING TICKET API DIRECTLY ===');
+        
+        // Check if user has selected any SSR (baggage, meal, or seat)
+        const hasSSRSelections = ssrSelections.some(sel => 
+          sel?.baggage || sel?.meal || sel?.seat
+        );
+        
+        // Only re-check fare quote if NO SSR selections (SSR data becomes invalid after new FareQuote call)
+        if (!hasSSRSelections) {
+          console.log('No SSR selections - Re-checking fare quote before ticketing...');
+          try {
+            const freshFareQuote = await flightsAPI.getFareQuote({
+              traceId,
+              resultIndex
+            });
+            
+            if (!freshFareQuote.success) {
+              throw new Error('Flight is no longer available. Please search again.');
+            }
+            
+            // Check if price has changed
+            if (freshFareQuote.results?.IsPriceChanged) {
+              const newFare = freshFareQuote.results.Fare;
+              if (confirm(`Price has changed from ${fareQuoteData.results.Fare.Currency} ${fareQuoteData.results.Fare.OfferedFare} to ${newFare.Currency} ${newFare.OfferedFare}.\n\nDo you want to continue with the new price?`)) {
+                // Update fare data and continue
+                setFareQuoteData(freshFareQuote);
+                // Update passenger fares
+                bookingPassengers.forEach(p => {
+                  p.Fare = newFare;
+                });
+              } else {
+                setLoading(false);
+                return;
+              }
+            }
+            
+            console.log('Fare quote verified - proceeding with ticketing');
+          } catch (fareError: any) {
+            throw new Error(fareError.message || 'Failed to verify flight availability. Please try again.');
+          }
+        } else {
+          console.log('SSR selections present - skipping fare quote re-check to preserve SSR session');
+        }
+        
+        const ticketResponse = await flightsAPI.ticket({
+          traceId,
+          resultIndex,
+          isLCC: true,
+          passengers: bookingPassengers
+        });
+
+        console.log('=== TICKET RESPONSE (LCC) ===');
+        console.log(JSON.stringify(ticketResponse, null, 2));
+        console.log('============================');
+
+        if (!ticketResponse.success) {
+          console.error('Ticketing failed:', ticketResponse);
+          throw new Error(ticketResponse.message || 'Ticketing failed');
+        }
+
+        // Check for price or time changes
+        if (ticketResponse.priceChanged || ticketResponse.timeChanged) {
+          const message = ticketResponse.priceChanged 
+            ? `Price has changed to ${ticketResponse.data.flightItinerary.Fare.Currency} ${ticketResponse.data.flightItinerary.Fare.OfferedFare}. Please confirm to proceed.`
+            : 'Flight schedule has changed. Please review the updated timings.';
+          
+          if (confirm(message + '\n\nDo you want to continue with the updated booking?')) {
+            // Update fare data and retry
+            setFareQuoteData({
+              ...fareQuoteData,
+              results: {
+                ...fareQuoteData.results,
+                Fare: ticketResponse.data.flightItinerary.Fare
+              }
+            });
+            return handleBooking();
+          } else {
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Success!
+        const { pnr, bookingId, flightItinerary } = ticketResponse.data;
+        
+        alert(`Booking & Ticketing Successful!\n\nPNR: ${pnr}\nBooking ID: ${bookingId}\n\nThis is an LCC flight - your ticket has been generated immediately!`);
+        
+        router.push(`/booking-confirmation?pnr=${pnr}&bookingId=${bookingId}`);
+        
+      } else {
+        // Non-LCC Flow: Call Book API first, then Ticket API
+        console.log('=== NON-LCC FLIGHT - CALLING BOOK API ===');
+        
+        // First, re-check fare quote to ensure flight is still available
+        console.log('Re-checking fare quote before booking...');
+        try {
+          const freshFareQuote = await flightsAPI.getFareQuote({
+            traceId,
+            resultIndex
+          });
+          
+          if (!freshFareQuote.success) {
+            throw new Error('Flight is no longer available. Please search again.');
+          }
+          
+          // Check if price has changed
+          if (freshFareQuote.results?.IsPriceChanged) {
+            const newFare = freshFareQuote.results.Fare;
+            if (confirm(`Price has changed from ${fareQuoteData.results.Fare.Currency} ${fareQuoteData.results.Fare.OfferedFare} to ${newFare.Currency} ${newFare.OfferedFare}.\n\nDo you want to continue with the new price?`)) {
+              // Update fare data and continue
+              setFareQuoteData(freshFareQuote);
+              // Update passenger fares
+              bookingPassengers.forEach(p => {
+                p.Fare = newFare;
+              });
+            } else {
+              setLoading(false);
+              return;
+            }
+          }
+          
+          console.log('Fare quote verified - proceeding with booking');
+        } catch (fareError: any) {
+          throw new Error(fareError.message || 'Failed to verify flight availability. Please try again.');
+        }
+        
+        const bookingResponse = await flightsAPI.book({
+          traceId,
+          resultIndex,
+          passengers: bookingPassengers
+        });
+
+        console.log('=== BOOKING RESPONSE (Non-LCC) ===');
+        console.log(JSON.stringify(bookingResponse, null, 2));
+        console.log('==================================');
+
+        if (!bookingResponse.success) {
+          console.error('Booking failed:', bookingResponse);
+          throw new Error(bookingResponse.message || 'Booking failed');
+        }
+
+        // Check for price or time changes
+        if (bookingResponse.priceChanged || bookingResponse.timeChanged) {
+          const message = bookingResponse.priceChanged 
+            ? `Price has changed to ${bookingResponse.data.flightItinerary.Fare.Currency} ${bookingResponse.data.flightItinerary.Fare.OfferedFare}. Please confirm to proceed.`
+            : 'Flight schedule has changed. Please review the updated timings.';
+          
+          if (confirm(message + '\n\nDo you want to continue with the updated booking?')) {
+            setFareQuoteData({
+              ...fareQuoteData,
+              results: {
+                ...fareQuoteData.results,
+                Fare: bookingResponse.data.flightItinerary.Fare
+              }
+            });
+            return handleBooking();
+          } else {
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Booking successful, now call Ticket API
+        // Use TekTravels bookingId (not MongoDB dbBookingId) for ticket API
+        const { pnr, bookingId: tekTravelsBookingId, flightItinerary } = bookingResponse.data;
+        
+        console.log('=== NON-LCC FLIGHT - CALLING TICKET API ===');
+        console.log('PNR:', pnr);
+        console.log('TekTravels BookingId:', tekTravelsBookingId);
+        console.log('MongoDB BookingId:', bookingResponse.data.dbBookingId);
+        
+        const ticketResponse = await flightsAPI.ticket({
+          traceId,
+          pnr,
+          bookingId: tekTravelsBookingId, // Use TekTravels BookingId for ticket API
+          isLCC: false
+        });
+
+        console.log('=== TICKET RESPONSE (Non-LCC) ===');
+        console.log(JSON.stringify(ticketResponse, null, 2));
+        console.log('=================================');
+
+        if (!ticketResponse.success) {
+          console.error('Ticketing failed:', ticketResponse);
+          throw new Error(ticketResponse.message || 'Ticketing failed. Booking is held but not ticketed.');
+        }
+
+        // Success!
+        alert(
+          `Booking & Ticketing Successful!\n\n` +
+          `PNR: ${pnr}\n` +
+          `Booking ID: ${tekTravelsBookingId}\n\n` +
+          `Your ticket has been generated successfully!${flightItinerary.LastTicketDate ? '\nLast Ticket Date: ' + flightItinerary.LastTicketDate : ''}`
+        );
+        
+        // Use TekTravels bookingId for confirmation page
+        router.push(`/booking-confirmation?pnr=${pnr}&bookingId=${tekTravelsBookingId}`);
+      }
       
     } catch (err: any) {
       console.error('Booking error:', err);
@@ -220,17 +644,19 @@ export default function FlightBooking() {
 
   const totalPassengers = passengerCount.adults + passengerCount.children + passengerCount.infants;
 
+  const steps = [
+    { num: 1, name: 'Passenger Details' },
+    { num: 2, name: isLCC ? 'Add-ons (SSR)' : 'Add-ons' },
+    { num: 3, name: 'Review & Pay' }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Progress Steps */}
         <div className="mb-8">
           <div className="flex items-center justify-center">
-            {[
-              { num: 1, name: 'Passenger Details' },
-              { num: 2, name: 'Add-ons (SSR)' },
-              { num: 3, name: 'Review & Pay' }
-            ].map((s, idx) => (
+            {steps.map((s, idx) => (
               <React.Fragment key={s.num}>
                 <div className="flex flex-col items-center">
                   <div
@@ -255,6 +681,36 @@ export default function FlightBooking() {
             ))}
           </div>
         </div>
+
+        {/* Flight Type Indicator */}
+        {fareQuoteData?.results?.IsLCC !== undefined && (
+          <div className={`mb-6 rounded-lg p-4 ${
+            fareQuoteData.results.IsLCC 
+              ? 'bg-orange-50 border border-orange-200' 
+              : 'bg-blue-50 border border-blue-200'
+          }`}>
+            <div className="flex items-center">
+              <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className={`font-semibold ${
+                  fareQuoteData.results.IsLCC ? 'text-orange-800' : 'text-blue-800'
+                }`}>
+                  {fareQuoteData.results.IsLCC ? 'Low-Cost Carrier (LCC) Flight' : 'Full-Service Flight'}
+                </p>
+                <p className={`text-sm ${
+                  fareQuoteData.results.IsLCC ? 'text-orange-600' : 'text-blue-600'
+                }`}>
+                  {fareQuoteData.results.IsLCC 
+                    ? 'Booking and ticketing will happen instantly in one step'
+                    : 'Booking will be confirmed first, then ticket will be generated'
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -288,6 +744,39 @@ export default function FlightBooking() {
                       </h3>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Title *
+                          </label>
+                          <select
+                            value={passenger.title}
+                            onChange={(e) => handlePassengerChange(index, 'title', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                          >
+                            <option value="Mr">Mr</option>
+                            <option value="Ms">Ms</option>
+                            <option value="Mrs">Mrs</option>
+                            <option value="Master">Master</option>
+                            <option value="Miss">Miss</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Gender *
+                          </label>
+                          <select
+                            value={passenger.gender}
+                            onChange={(e) => handlePassengerChange(index, 'gender', parseInt(e.target.value))}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                          >
+                            <option value="1">Male</option>
+                            <option value="2">Female</option>
+                          </select>
+                        </div>
+                        
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             First Name *
@@ -326,16 +815,84 @@ export default function FlightBooking() {
                             required
                           />
                         </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Nationality *
+                          </label>
+                          <input
+                            type="text"
+                            value={passenger.nationality}
+                            onChange={(e) => handlePassengerChange(index, 'nationality', e.target.value)}
+                            placeholder="e.g., US"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                          />
+                        </div>
+                        
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Address *
+                          </label>
+                          <input
+                            type="text"
+                            value={passenger.address}
+                            onChange={(e) => handlePassengerChange(index, 'address', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            City *
+                          </label>
+                          <input
+                            type="text"
+                            value={passenger.city}
+                            onChange={(e) => handlePassengerChange(index, 'city', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Country Code *
+                          </label>
+                          <input
+                            type="text"
+                            value={passenger.countryCode}
+                            onChange={(e) => handlePassengerChange(index, 'countryCode', e.target.value)}
+                            placeholder="e.g., US"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                          />
+                        </div>
                         
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Passport Number (International flights)
+                            Passport Number {fareQuoteData?.results?.IsPassportRequiredAtBook && '*'}
                           </label>
                           <input
                             type="text"
                             value={passenger.passportNumber}
                             onChange={(e) => handlePassengerChange(index, 'passportNumber', e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required={fareQuoteData?.results?.IsPassportRequiredAtBook}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Passport Expiry {fareQuoteData?.results?.IsPassportRequiredAtBook && '*'}
+                          </label>
+                          <input
+                            type="date"
+                            value={passenger.passportExpiry}
+                            onChange={(e) => handlePassengerChange(index, 'passportExpiry', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required={fareQuoteData?.results?.IsPassportRequiredAtBook}
                           />
                         </div>
                       </div>
@@ -394,14 +951,33 @@ export default function FlightBooking() {
               </div>
             )}
 
-            {/* Step 2: SSR Selection */}
-            {step === 2 && (
+            {/* Step 2: SSR Selection (Only for LCC flights) */}
+            {step === 2 && isLCC && (
               <SSRSelection
                 traceId={traceId}
                 resultIndex={resultIndex}
                 passengerCount={totalPassengers}
                 onSelectionChange={handleSSRChange}
               />
+            )}
+            
+            {/* Step 2: Skip SSR for Non-LCC flights */}
+            {step === 2 && !isLCC && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                  SSR Not Available
+                </h3>
+                <p className="text-blue-700 mb-4">
+                  Seat selection, meals, and baggage options are not available during booking for this flight.
+                  You may be able to add these services after ticketing through the airline directly.
+                </p>
+                <button
+                  onClick={handleNext}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Continue to Review
+                </button>
+              </div>
             )}
 
             {/* Step 3: Review & Payment */}
@@ -547,7 +1123,12 @@ export default function FlightBooking() {
                   disabled={loading}
                   className="ml-auto px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Processing...' : 'Confirm & Pay'}
+                  {loading 
+                    ? 'Processing...' 
+                    : fareQuoteData?.results?.IsLCC 
+                      ? 'Book & Generate Ticket' 
+                      : 'Confirm & Pay'
+                  }
                 </button>
               )}
             </div>
