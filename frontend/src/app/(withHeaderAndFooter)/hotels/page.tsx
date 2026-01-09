@@ -42,10 +42,8 @@ export default function HotelSearchPage() {
   const showAll = visibleItems === propertyType.length;
 
   useEffect(() => {
-    // Only search if we have params, otherwise maybe show popular/random or nothing
-    if (searchParams.get("cityId") || searchParams.get("checkIn")) {
-      fetchHotels();
-    }
+    // Search whenever params change or on mount
+    fetchHotels();
   }, [searchParams]);
 
   const fetchHotels = async () => {
@@ -53,34 +51,65 @@ export default function HotelSearchPage() {
       setLoading(true);
       setError("");
 
+      // Default to New Delhi (130443) if no city is searched yet
       const cityId = searchParams.get("cityId") || "130443";
-      const checkIn =
-        searchParams.get("checkIn") || new Date().toISOString().split("T")[0];
-      const checkOut =
-        searchParams.get("checkOut") ||
-        new Date(Date.now() + 86400000).toISOString().split("T")[0];
-      const adults = parseInt(searchParams.get("adults") || "1");
-      const children = parseInt(searchParams.get("children") || "0");
 
-      const response = await hotelsAPI.search({
-        checkIn,
-        checkOut,
-        cityId,
-        guestNationality: "IN",
-        paxRooms: [{ Adults: adults, Children: children }],
-      });
+      // Using the browse (static) API as requested to get "multiple details"
+      const response = await hotelsAPI.browse(cityId);
 
-      if (response.success && response.data?.HotelResult) {
-        setHotels(response.data.HotelResult);
+      console.log("Hotel Browse Response:", response);
+
+      // Extract the hotels list with multiple fallback paths
+      const resultsData = response.data || response;
+      const hotelList =
+        resultsData?.HotelDetails ||
+        (Array.isArray(resultsData) ? resultsData : null);
+
+      if (hotelList && Array.isArray(hotelList)) {
+        // Map TBO HotelDetails to our UI structure
+        const enrichedHotels = hotelList.map((h: any) => {
+          // Clean up the description - remove HTML tags for the listing snippet
+          const desc = h.Description || "";
+          const cleanDescription =
+            desc.replace(/<[^>]*>?/gm, "").substring(0, 150) +
+            (desc.length > 150 ? "..." : "");
+
+          return {
+            HotelCode: h.HotelCode || h.hotelCode,
+            HotelName: h.HotelName || h.hotelName || "Unnamed Hotel",
+            HotelAddress: h.Address || h.address || "Address not available",
+            HotelPicture: h.Images && h.Images.length > 0 ? h.Images[0] : hotel,
+            Images: h.Images || [],
+            StarRating: (() => {
+              const r = (h.HotelRating || h.hotelRating || "")
+                .toString()
+                .toLowerCase();
+              if (r.includes("one") || r === "1") return 1;
+              if (r.includes("two") || r === "2") return 2;
+              if (r.includes("three") || r === "3") return 3;
+              if (r.includes("four") || r === "4") return 4;
+              if (r.includes("five") || r === "5") return 5;
+              return parseInt(r.replace("star", "") || "0");
+            })(),
+            Description: cleanDescription,
+            Facilities: h.HotelFacilities || h.facilities || [],
+            MinHotelPrice: {
+              TotalPrice: h.MinHotelPrice || "Price on request",
+            },
+            TraceId: h.TraceId || "",
+          };
+        });
+        setHotels(enrichedHotels);
       } else {
-        setHotels([]); // No results
-        if (response.data?.ResponseStatus === 2) {
-          setError("No hotels found for the selected criteria.");
-        }
+        console.warn("Hotel list empty or invalid structure:", hotelList);
+        setHotels([]);
+        setError(
+          resultsData?.message || "No hotels found for the selected city."
+        );
       }
     } catch (err: any) {
       console.error("Hotel fetch error:", err);
-      setError("Failed to fetch hotels. Please try again.");
+      setError("Failed to fetch hotel details. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -330,50 +359,89 @@ export default function HotelSearchPage() {
                           </div>
 
                           <div className="mt-2 text-sm">
-                            <p className="text-gray-600">
+                            <p className="text-gray-500 font-medium italic">
                               {hotelData.HotelAddress}
+                            </p>
+                            <p className="text-gray-400 mt-2 line-clamp-2">
+                              {hotelData.Description}
                             </p>
                           </div>
 
-                          <div className="mt-4 flex gap-2 items-center text-sm">
-                            <span className="font-medium">
-                              {/* Assuming first room display or generic text */}
-                              Standard Room
-                            </span>
-                          </div>
-
-                          <div className="mt-4">
-                            {/* Facilities placeholder or if API has them */}
-                            <div className="flex items-center gap-1 mb-2">
-                              <span className="text-[1rem] font-semibold">
-                                Facilities:
+                          <div className="mt-4 flex flex-wrap gap-4 items-center">
+                            {/* Facilities from API */}
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                Top Facilities
                               </span>
-                              <div className="flex gap-4 ml-2 text-gray-500 text-xs">
-                                {/* TBO search result might not have amenities list, usually detailed info does */}
-                                <span>WiFi</span> <span>AC</span>
+                              <div className="flex flex-wrap gap-2 text-gray-600 text-[10px]">
+                                {hotelData.Facilities?.slice(0, 4).map(
+                                  (f: string, i: number) => (
+                                    <span
+                                      key={i}
+                                      className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded shadow-sm border border-indigo-100"
+                                    >
+                                      {f}
+                                    </span>
+                                  )
+                                )}
                               </div>
                             </div>
+
+                            {/* Thumbnail images */}
+                            {hotelData.Images?.length > 1 && (
+                              <div className="flex flex-col gap-1">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                  Gallery
+                                </span>
+                                <div className="flex gap-1 overflow-hidden h-8">
+                                  {hotelData.Images.slice(1, 5).map(
+                                    (img: string, i: number) => (
+                                      <div
+                                        key={i}
+                                        className="relative w-10 h-8"
+                                      >
+                                        <Image
+                                          src={img}
+                                          alt="thumb"
+                                          fill
+                                          className="object-cover rounded border border-gray-100 shadow-sm"
+                                        />
+                                      </div>
+                                    )
+                                  )}
+                                  {hotelData.Images.length > 5 && (
+                                    <div className="w-8 h-8 bg-gray-100 flex items-center justify-center text-[8px] text-gray-400 rounded border border-gray-100">
+                                      +{hotelData.Images.length - 5}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
 
-                          <div className="mt-4 flex justify-between items-end">
+                          <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-end">
                             <div>
-                              <div className="flex items-end gap-1">
-                                <span className="text-xl font-bold">
-                                  ₹
-                                  {hotelData.MinHotelPrice?.TotalPrice || "N/A"}
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-xs text-gray-400 font-medium uppercase">
+                                  Starting from
                                 </span>
-                                <span className="text-gray-600 text-sm mb-1">
-                                  Per Night
+                                <span className="text-xl font-bold text-gray-900">
+                                  {typeof hotelData.MinHotelPrice.TotalPrice ===
+                                  "number"
+                                    ? `₹${hotelData.MinHotelPrice.TotalPrice}`
+                                    : hotelData.MinHotelPrice.TotalPrice}
                                 </span>
                               </div>
-                              <p className="text-gray-500 text-xs">+ Taxes</p>
+                              <p className="text-gray-400 text-[10px]">
+                                + taxes & fees / night
+                              </p>
                             </div>
 
                             <Link
                               href={`/hotels/${hotelData.HotelCode}?traceId=${hotelData.TraceId}`}
-                              className="px-8 py-3 border-2 border-indigo-800 text-secondarycolor rounded-lg font-semibold text-[1rem] hover:bg-secondarycolor hover:text-white transition-colors"
+                              className="px-6 py-2.5 bg-secondarycolor text-white rounded-lg font-bold text-sm shadow-md hover:bg-secondarycolor/90 transition-all transform hover:-translate-y-0.5"
                             >
-                              See availability
+                              Check Details
                             </Link>
                           </div>
                         </div>

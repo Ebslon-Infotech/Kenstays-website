@@ -30,14 +30,61 @@ import img3 from "@/assets/Hotels/img3.webp";
 import img4 from "@/assets/Hotels/img4.webp";
 import img5 from "@/assets/Hotels/img5.webp";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { hotelsAPI } from "@/lib/api";
 
-export default function page() {
+export default function HotelDetailsPage() {
   const navigate = useRouter();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const hotelCode = params.id as string;
+  const traceId = searchParams.get("traceId");
+
   const [activeTab, setActiveTab] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<number | null>(null);
   const [isOpenModal, setIsOpenModal] = useState(false);
   const [rating, setRating] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [hotelData, setHotelData] = useState<any>(null);
+
+  React.useEffect(() => {
+    if (hotelCode) {
+      fetchDetails();
+    }
+  }, [hotelCode]);
+
+  const fetchDetails = async () => {
+    try {
+      setLoading(true);
+      const response = await hotelsAPI.getDetails(hotelCode);
+      if (response.success && response.data?.HotelDetails?.[0]) {
+        const h = response.data.HotelDetails[0];
+        // Normalize StarRating from "5Star" or similar to a number
+        const normalized = {
+          ...h,
+          StarRating: (() => {
+            const r = h.HotelRating?.toLowerCase() || "";
+            if (typeof h.HotelRating !== "string") return h.HotelRating || 0;
+            if (r.includes("one")) return 1;
+            if (r.includes("two")) return 2;
+            if (r.includes("three")) return 3;
+            if (r.includes("four")) return 4;
+            if (r.includes("five")) return 5;
+            return parseInt(r.replace("star", "") || "0");
+          })(),
+        };
+        setHotelData(normalized);
+      } else {
+        setError("Hotel details not found.");
+      }
+    } catch (err) {
+      console.error("Fetch details error:", err);
+      setError("Failed to load hotel details.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const hotelEntity = [
     { id: 1, name: "Overview" },
@@ -46,6 +93,24 @@ export default function page() {
     { id: 4, name: "Hotel Rules" },
     { id: 5, name: "Policies" },
   ];
+
+  if (loading)
+    return (
+      <div className="max-w-7xl mx-auto p-6 my-10 text-center">
+        Loading hotel details...
+      </div>
+    );
+  if (error)
+    return (
+      <div className="max-w-7xl mx-auto p-6 my-10 text-center text-red-500">
+        {error}
+      </div>
+    );
+  if (!hotelData) return null;
+
+  const images = hotelData?.Images || [];
+  const mainImage = images[0] || Hotel;
+
   return (
     <>
       <div className="max-w-7xl mx-auto p-6 my-10">
@@ -53,8 +118,10 @@ export default function page() {
           {/* Top Left Image */}
           <div className="relative h-48 md:h-full">
             <Image
-              src={img3}
-              alt="Resort swimming pool at night"
+              src={images[1] || img3}
+              alt="Hotel image 2"
+              width={400}
+              height={300}
               className="w-full h-full object-cover"
             />
           </div>
@@ -62,8 +129,10 @@ export default function page() {
           {/* Large Main Image - Center */}
           <div className="md:col-span-2 md:row-span-2 relative h-[400px] md:h-full">
             <Image
-              src={img1}
-              alt="Luxury wooden villa with infinity pool"
+              src={mainImage}
+              alt={hotelData?.HotelName || "Hotel"}
+              width={800}
+              height={600}
               className="w-full h-full object-cover"
             />
           </div>
@@ -71,8 +140,10 @@ export default function page() {
           {/* Top Right Image */}
           <div className="relative h-48 md:h-full">
             <Image
-              src={img4}
-              alt="Elegant hotel room interior"
+              src={images[2] || img4}
+              alt="Hotel image 3"
+              width={400}
+              height={300}
               className="w-full h-full object-cover"
             />
           </div>
@@ -80,8 +151,10 @@ export default function page() {
           {/* Bottom Left Image */}
           <div className="relative h-48 md:h-full">
             <Image
-              src={img2}
-              alt="Tropical resort with cabanas"
+              src={images[3] || img2}
+              alt="Hotel image 4"
+              width={400}
+              height={300}
               className="w-full h-full object-cover"
             />
           </div>
@@ -89,13 +162,17 @@ export default function page() {
           {/* Bottom Right Image with Overlay */}
           <div className="relative h-48 md:h-full">
             <Image
-              src={img5}
-              alt="Beach loungers on wooden deck"
+              src={images[4] || img5}
+              alt="Hotel image 5"
+              width={400}
+              height={300}
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center rounded-md">
               <span className="text-white text-2xl font-semibold">
-                50+ images
+                {images.length > 5
+                  ? `${images.length - 5}+ images`
+                  : "View details"}
               </span>
             </div>
           </div>
@@ -107,24 +184,20 @@ export default function page() {
               className="font-medium text-3xl"
               style={{ fontFamily: "var(--font-playfair-display)" }}
             >
-              Paradise Hotel
+              {hotelData?.HotelName || "Paradise Hotel"}
             </h2>
             <div className="flex">
-              {[1, 2, 3, 4].map((star) => (
-                <svg
-                  key={star}
-                  className="w-5 h-5 text-green-600 fill-current"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                </svg>
-              ))}
-              <svg
-                className="w-5 h-5 text-gray-300 fill-current"
-                viewBox="0 0 24 24"
-              >
-                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-              </svg>
+              {Array.from({ length: hotelData?.StarRating || 0 }).map(
+                (_, i) => (
+                  <svg
+                    key={i}
+                    className="w-5 h-5 text-green-600 fill-current"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                  </svg>
+                )
+              )}
             </div>
           </div>
           <div className="flex gap-2">
@@ -164,383 +237,178 @@ export default function page() {
                 <div className="flex-1">
                   <h2 className="font-semibold text-xl mb-6">About</h2>
                   <div className="mb-6">
-                    <p className="text-sm mb-6">
-                      Country Inn and Suites by Radisson, Sahibabad offers an
-                      exceptional and luxurious experience with its modern
-                      accommodations, pure spa/diving options, and world-class
-                      amenities. Indulge in pampering spa treatments, take a
-                      refreshing swim in the crystal-clear pool, and maintain
-                      your fitness at the state-of-the-art gym. The on-site
-                      restaurants serve a delightful array of non-vegetarian
-                      Thai, Lebanese, Mexican, and Indian delicacies, providing
-                      a feast for the senses. This hotel is a haven for those
-                      seeking unparalleled luxury and relaxation.
-                    </p>
+                    <p
+                      className="text-sm mb-6"
+                      dangerouslySetInnerHTML={{
+                        __html:
+                          hotelData?.Description || "No description available.",
+                      }}
+                    />
                   </div>
 
                   {/* Room options */}
                   <h2 className="font-bold mb-2">Rooms</h2>
-                  <div className="flex items-center gap-4">
-                    <div className="w-48">
-                      <Image src={Hotel} alt="hotel" className="w-full" />
-                    </div>
-                    <div className="mb-6">
-                      <div className="bg-white text-black p-4 rounded-t-md">
-                        <h2 className="font-bold">Superior Room</h2>
-                        <div className="grid grid-cols-1 gap-4 mt-2">
-                          <div className="flex items-center gap-2">
-                            <BiBorderAll size={20} />
-                            <span className="text-sm">400 sq ft</span>
+                  {hotelData.HotelRooms && hotelData.HotelRooms.length > 0 ? (
+                    <div className="space-y-6">
+                      {hotelData.HotelRooms.map((room: any, index: number) => (
+                        <div
+                          key={index}
+                          className="flex flex-col md:flex-row items-start gap-4 border border-gray-200 rounded-lg p-4"
+                        >
+                          <div className="w-full md:w-48 h-32 relative flex-shrink-0">
+                            <Image
+                              src={mainImage}
+                              alt={room.RoomName}
+                              fill
+                              className="object-cover rounded-md"
+                            />
                           </div>
-                          <div className="flex items-center gap-2">
-                            <BiBorderAll size={20} />
-                            <span className="text-sm">City View</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <IoBedOutline size={20} strokeWidth={2} />
-                            <span className="text-sm">
-                              1 king bed or 2 twin bed(s)
-                            </span>
+                          <div className="flex-1">
+                            <h3 className="font-bold text-lg">
+                              {room.RoomName}
+                            </h3>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {room.Amenities?.slice(0, 4).map(
+                                (amenity: string, i: number) => (
+                                  <div
+                                    key={i}
+                                    className="flex items-center gap-1 text-xs text-gray-600"
+                                  >
+                                    <svg
+                                      className="h-3 w-3 text-green-600"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M5 13l4 4L19 7"
+                                      />
+                                    </svg>
+                                    <span>{amenity}</span>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                            <div className="mt-4 flex justify-between items-center">
+                              <p className="text-xs text-blue-600 font-medium">
+                                {room.Inclusions?.join(" • ") || "Room only"}
+                              </p>
+                            </div>
                           </div>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-2 mt-4">
-                          {superiorRoom.map((room, index) => (
-                            <div
-                              key={index}
-                              className="flex items-center gap-1"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-3 w-3 text-green-600"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                              <span className="text-sm">{room}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                      ))}
                     </div>
-                  </div>
-
-                  {/* Room booking options */}
-                  <div className="mt-4 space-y-4">
-                    {/* Option 1 */}
-                    <div className="border border-gray-300 rounded-md p-4 hover:border-blue-500 cursor-pointer">
-                      <div className="flex items-start">
-                        <input
-                          type="radio"
-                          id="room1"
-                          name="roomOption"
-                          className="mt-1"
-                          checked={selectedRoom === 1}
-                          onChange={() => setSelectedRoom(1)}
-                        />
-                        <label htmlFor="room1" className="ml-2 flex-1">
-                          <div className="flex justify-between">
-                            <div>
-                              <p className="font-medium">
-                                Room with fee cancellation
-                              </p>
-                              <p className="text-xs mt-1">
-                                Free cancellation till 24hrs before check in
-                              </p>
-                              <p className="text-xs mt-1">No meals included</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-bold">
-                                ₹10,664{" "}
-                                <span className="text-xs font-normal">
-                                  per night
-                                </span>
-                              </p>
-                              <p className="text-xs text-gray-400">
-                                +₹2,665 taxes & fees
-                              </p>
-                              <button className="text-blue-400 text-xs mt-2">
-                                More details
-                              </button>
-                            </div>
-                          </div>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Option 2 */}
-                    <div className="border border-gray-300 rounded-md p-4 hover:border-blue-500 cursor-pointer">
-                      <div className="flex items-start">
-                        <input
-                          type="radio"
-                          id="room2"
-                          name="roomOption"
-                          className="mt-1"
-                          checked={selectedRoom === 2}
-                          onChange={() => setSelectedRoom(2)}
-                        />
-                        <label htmlFor="room2" className="ml-2 flex-1">
-                          <div className="flex justify-between">
-                            <div>
-                              <p className="font-medium">
-                                Room with fee cancellation | Breakfast only
-                              </p>
-                              <p className="text-xs mt-1">
-                                Free cancellation till 24hrs before check in
-                              </p>
-                              <p className="text-xs mt-1">Free Breakfast</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-bold">
-                                ₹10,799{" "}
-                                <span className="text-xs font-normal">
-                                  per night
-                                </span>
-                              </p>
-                              <p className="text-xs text-gray-400">
-                                +₹2,700 taxes & fees
-                              </p>
-                              <button className="text-blue-400 text-xs mt-2">
-                                More details
-                              </button>
-                            </div>
-                          </div>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Option 3 */}
-                    <div className="border border-gray-300 rounded-md p-4 hover:border-blue-500 cursor-pointer">
-                      <div className="flex items-start">
-                        <input
-                          type="radio"
-                          id="room3"
-                          name="roomOption"
-                          className="mt-1"
-                          checked={selectedRoom === 3}
-                          onChange={() => setSelectedRoom(3)}
-                        />
-                        <label htmlFor="room3" className="ml-2 flex-1">
-                          <div className="flex justify-between">
-                            <div>
-                              <p className="font-medium">
-                                Room with fee cancellation | Breakfast +
-                                Lunch/Dinner
-                              </p>
-                              <p className="text-xs mt-1">
-                                Free cancellation till 24hrs before check in
-                              </p>
-                              <p className="text-xs mt-1">
-                                Free Breakfast + Lunch/Dinner
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-bold">
-                                ₹19,799{" "}
-                                <span className="text-xs font-normal">
-                                  per night
-                                </span>
-                              </p>
-                              <p className="text-xs text-gray-400">
-                                +₹4,950 taxes & fees
-                              </p>
-                              <button className="text-blue-400 text-xs mt-2">
-                                More details
-                              </button>
-                            </div>
-                          </div>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      Contact us for room availability and pricing.
+                    </p>
+                  )}
 
                   <hr className="my-6" />
 
                   {/* Amenities */}
                   <h2 className="font-semibold text-xl">Amenities</h2>
-                  <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6 mt-6 w-[70%]">
-                    {hotelFacility.map((facility, index) => (
-                      <div key={index} className="flex flex-col items-center">
-                        <div className="border border-gray-400 rounded-xl p-3 w-[4rem] h-[4rem] flex items-center justify-center">
-                          <Image
-                            src={facility.image}
-                            alt={facility.name}
-                            width={45}
-                            height={45}
-                          />
+                  <div className="flex flex-wrap gap-2 mt-6">
+                    {(hotelData?.HotelFacilities || []).map(
+                      (facility: string, index: number) => (
+                        <div
+                          key={index}
+                          className="bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-600"
+                        >
+                          {facility}
                         </div>
-                        <p className="mt-2 text-center text-gray-600 text-xs">
-                          {facility.name}
-                        </p>
-                      </div>
-                    ))}
+                      )
+                    )}
                   </div>
 
                   <hr className="my-6" />
 
                   {/* Hotel policies */}
-                  <h2 className="font-semibold text-xl">Hotel Rules</h2>
-                  <div className="space-y-4 mt-6 text-sm">
-                    <table className="w-full border-collapse">
-                      <tbody>
-                        {/* Check-in */}
-                        <tr className="border-none">
-                          <td className=" flex items-center gap-2 py-3 pr-5">
-                            <TbLogin size={30} className="rotate-180" />
-                            <h3 className="font-semibold text-[1rem]">
-                              Check-in
-                            </h3>
-                          </td>
-                          <td className="py-3 pl-5">From 11:00 to 23:00</td>
-                        </tr>
+                  <h2 className="font-semibold text-xl">
+                    Hotel Rules & Information
+                  </h2>
+                  <div className="space-y-6 mt-6 text-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-4 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-white p-2 rounded-md shadow-sm">
+                          <TbLogin
+                            size={24}
+                            className="text-secondarycolor rotate-180"
+                          />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-500 uppercase text-[10px] tracking-wider">
+                            Check-in
+                          </p>
+                          <p className="text-base font-medium">
+                            {hotelData.CheckInTime || "14:00"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="bg-white p-2 rounded-md shadow-sm">
+                          <TbLogout size={24} className="text-secondarycolor" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-500 uppercase text-[10px] tracking-wider">
+                            Check-out
+                          </p>
+                          <p className="text-base font-medium">
+                            {hotelData.CheckOutTime || "11:00"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
-                        {/* Check-out */}
-                        <tr className="border-none">
-                          <td className="flex items-center gap-2 py-3 pr-5">
-                            <TbLogout size={30} />
-                            <h3 className="font-semibold text-[1rem]">
-                              Check-out
-                            </h3>
-                          </td>
-                          <td className="py-3 pl-5">From 11:00 to 12:00</td>
-                        </tr>
+                    <div className="prose prose-sm max-w-none text-gray-600">
+                      <h3 className="font-semibold text-black mb-2 flex items-center gap-2">
+                        <TbInfoSquare
+                          size={20}
+                          className="text-secondarycolor"
+                        />
+                        Hotel Policies
+                      </h3>
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html:
+                            hotelData.HotelPolicy ||
+                            "Please contact hotel for detailed policies.",
+                        }}
+                      />
+                    </div>
 
-                        {/* Cancellation/Prepayment */}
-                        <tr>
-                          <td className="flex items-center gap-2 py-3 pr-5">
-                            <TbInfoSquare size={30} />
-                            <h3 className="font-semibold text-[1rem]">
-                              Cancellation/Prepayment
-                            </h3>
-                          </td>
-                          <td className="py-3 pl-5">
-                            Cancellation and prepayment policies vary according
-                            to accommodation type. Please check what conditions
-                            may apply to each option when making your selection.
-                          </td>
-                        </tr>
-
-                        {/* Child Policy */}
-                        <tr>
-                          <td className="flex items-center gap-2 py-3 pr-5">
-                            <TbInfoSquare size={30} />
-                            <h3 className="font-semibold text-[1rem]">
-                              Children and beds
-                            </h3>
-                          </td>
-                          <td className="py-3 pl-5">
-                            <h3 className="font-semibold text-[0.8rem]">
-                              Child Policy
-                            </h3>
-                            <p className="my-2">
-                              Children of any age are welcome.
-                            </p>
-                            <p>
-                              To see correct prices and occupancy information,
-                              please add the number of children in your group
-                              and their ages to your search.
-                            </p>
-
-                            <h3 className="font-semibold text-[0.8rem]">
-                              Cot and extra beds policy
-                            </h3>
-                            <div className="border border-gray-200 border-b-none px-4 py-3 mt-4">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span>0 - 2 years</span>
+                    {hotelData.Attractions &&
+                      hotelData.Attractions.length > 0 && (
+                        <div>
+                          <h3 className="font-semibold text-black mb-3 flex items-center gap-2">
+                            <HiOutlineLocationMarker
+                              size={20}
+                              className="text-secondarycolor"
+                            />
+                            Nearby Attractions
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                            {hotelData.Attractions.map(
+                              (attr: any, i: number) => (
+                                <div
+                                  key={i}
+                                  className="flex justify-between items-center py-2 border-b border-gray-100"
+                                >
+                                  <span className="text-gray-700 font-medium">
+                                    {attr.key}
+                                  </span>
+                                  <span className="text-xs text-secondarycolor bg-secondarycolor/10 px-2 py-0.5 rounded">
+                                    {attr.value}
+                                  </span>
                                 </div>
-                              </div>
-                            </div>
-
-                            <div className="border border-gray-200 px-4 py-2">
-                              <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2">
-                                  <Image
-                                    src={bed}
-                                    alt="bed"
-                                    width={30}
-                                    height={30}
-                                  />
-                                  <span>Cot upon request</span>
-                                </div>
-                                <span className="text-green-500">Free</span>
-                              </div>
-                            </div>
-
-                            <p className="my-3">
-                              The number of extra beds and cots allowed is
-                              dependent on the option you choose. Please check
-                              your selected option for more information. All
-                              cots and extra beds are subject to availability.
-                            </p>
-                          </td>
-                        </tr>
-
-                        {/* Age */}
-                        <tr>
-                          <td className="flex items-center gap-2 py-3 pr-5">
-                            <VscPerson size={30} />
-                            <h3 className="font-semibold text-[1rem]">
-                              No age restriction
-                            </h3>
-                          </td>
-                          <td className="py-3 pl-5">
-                            There is no age requirement for check-in.
-                          </td>
-                        </tr>
-
-                        {/* Pets */}
-                        <tr>
-                          <td className="flex items-center gap-2 py-3 pr-5">
-                            <LiaPawSolid size={30} />
-                            <h3 className="font-semibold text-[1rem]">Pets</h3>
-                          </td>
-                          <td className="py-3 pl-5">
-                            Pets are allowed on request. Charges may be
-                            applicable.
-                          </td>
-                        </tr>
-
-                        {/* Groups */}
-                        <tr>
-                          <td className="flex items-center gap-2 py-3 pr-5">
-                            <RiGroupLine size={30} />
-                            <h3 className="font-semibold text-[1rem]">
-                              Groups
-                            </h3>
-                          </td>
-                          <td className="py-3 pl-5">
-                            When booking more than 7 rooms, different policies
-                            and additional supplements may apply.
-                          </td>
-                        </tr>
-
-                        {/* Groups */}
-                        <tr>
-                          <td className="flex items-center gap-2 py-3 pr-5">
-                            <CiCreditCard1 size={30} />
-                            <h3 className="font-semibold text-[1rem]">
-                              Accepted Payment Methods
-                            </h3>
-                          </td>
-                          <td className="py-3 pl-5">
-                            <div className="flex gap-2 mt-4">
-                              <Image src={visa} alt="visa" width={50} />
-                              <Image src={mc} alt="master" width={50} />
-                              <Image src={discover} alt="discover" width={50} />
-                              <Image src={group} alt="group" width={50} />
-                            </div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
                   </div>
 
                   <hr className="my-6" />
