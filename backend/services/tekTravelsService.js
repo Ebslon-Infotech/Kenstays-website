@@ -24,6 +24,31 @@ const getClientIP = (req) => {
 };
 
 /**
+ * Sanitize passenger data to remove special characters
+ * @param {Object} passenger - Passenger object
+ * @returns {Object} - Sanitized passenger object
+ */
+const sanitizePassengerData = (passenger) => {
+  const sanitized = { ...passenger };
+  
+  // Remove special characters from passport number (tabs, newlines, etc.)
+  if (sanitized.PassportNo && typeof sanitized.PassportNo === 'string') {
+    sanitized.PassportNo = sanitized.PassportNo.replace(/[\t\n\r\s]+/g, '').trim();
+  }
+  
+  // Clean other string fields
+  const stringFields = ['FirstName', 'LastName', 'AddressLine1', 'AddressLine2', 'City', 'Email'];
+  stringFields.forEach(field => {
+    if (sanitized[field] && typeof sanitized[field] === 'string') {
+      // Remove tabs and excessive whitespace
+      sanitized[field] = sanitized[field].replace(/[\t\n\r]+/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+  });
+  
+  return sanitized;
+};
+
+/**
  * Validate and format SSR data for passengers (LCC flights)
  * Ensures SSR data matches TekTravels API requirements
  * @param {Object} passenger - Passenger object with potential SSR data
@@ -1010,12 +1035,15 @@ const ticketFlight = async (ticketParams) => {
         throw new Error('At least one passenger is required for LCC flights');
       }
 
+      // Sanitize passenger data to remove special characters
+      const sanitizedPassengers = passengers.map(p => sanitizePassengerData(p));
+      
       requestBody = {
         EndUserIp: endUserIp || TEKTRAVELS_END_USER_IP,
         TokenId: tokenId,
         TraceId: traceId,
         ResultIndex: resultIndex,
-        Passengers: passengers,
+        Passengers: sanitizedPassengers,
         IsPriceChangeAccepted: isPriceChangeAccepted || false
       };
 
@@ -1140,6 +1168,7 @@ module.exports = {
   getCachedToken,
   clearCachedToken,
   getClientIP,
+  sanitizePassengerData,
   validateAndFormatSSR,
   createDefaultSSR,
   searchFlights,

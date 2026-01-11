@@ -30,24 +30,46 @@ interface PassengerDetail {
   Seat?: any;
 }
 
+interface Airport {
+  AirportCode: string;
+  AirportName: string;
+  Terminal?: string;
+  CityCode: string;
+  CityName: string;
+  CountryCode: string;
+  CountryName: string;
+}
+
 interface Segment {
-  Origin: string;
-  Destination: string;
-  AirlineCode: string;
-  AirlineName: string;
-  FlightNumber: string;
-  FareClass: string;
-  DepTime: string;
-  ArrTime: string;
+  Origin: {
+    Airport: Airport;
+    DepTime: string;
+  };
+  Destination: {
+    Airport: Airport;
+    ArrTime: string;
+  };
+  Airline: {
+    AirlineCode: string;
+    AirlineName: string;
+    FlightNumber: string;
+    FareClass: string;
+    OperatingCarrier: string;
+  };
+  AirlineCode?: string;
+  AirlineName?: string;
+  FlightNumber?: string;
+  FareClass?: string;
+  DepTime?: string;
+  ArrTime?: string;
   Duration: number;
   Baggage: string;
   CabinBaggage: string;
   Status: string;
+  FlightStatus: string;
   AirlinePNR: string;
-  Terminal?: {
-    Departure?: string;
-    Arrival?: string;
-  };
+  TripIndicator: number;
+  SegmentIndicator: number;
 }
 
 interface BookingDetails {
@@ -316,20 +338,38 @@ export default function BookingConfirmationPage() {
             Flight Details
           </h2>
           
-          {itinerary.Segments.map((segment, index) => (
+          {itinerary.Segments.map((segment, index) => {
+            // Extract airline info from either direct properties or Airline object
+            const airlineCode = segment.Airline?.AirlineCode || segment.AirlineCode || '';
+            const airlineName = segment.Airline?.AirlineName || segment.AirlineName || '';
+            const flightNumber = segment.Airline?.FlightNumber || segment.FlightNumber || '';
+            const fareClass = segment.Airline?.FareClass || segment.FareClass || '';
+            
+            // Extract origin and destination info
+            const originCode = segment.Origin?.Airport?.AirportCode || '';
+            const originCity = segment.Origin?.Airport?.CityName || '';
+            const originTerminal = segment.Origin?.Airport?.Terminal || '';
+            const depTime = segment.Origin?.DepTime || segment.DepTime || '';
+            
+            const destCode = segment.Destination?.Airport?.AirportCode || '';
+            const destCity = segment.Destination?.Airport?.CityName || '';
+            const destTerminal = segment.Destination?.Airport?.Terminal || '';
+            const arrTime = segment.Destination?.ArrTime || segment.ArrTime || '';
+            
+            return (
             <div key={index} className={`${index > 0 ? 'mt-4 pt-4 border-t border-gray-200' : ''}`}>
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-sm text-gray-600">Flight</p>
                   <p className="text-lg font-bold text-gray-800">
-                    {segment.AirlineCode} {segment.FlightNumber}
+                    {airlineCode} {flightNumber}
                   </p>
-                  <p className="text-sm text-gray-600">{segment.AirlineName}</p>
+                  <p className="text-sm text-gray-600">{airlineName}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-600">Status</p>
-                  <p className="text-lg font-bold text-green-600">{segment.Status}</p>
-                  <p className="text-sm text-gray-600">PNR: {segment.AirlinePNR}</p>
+                  <p className="text-lg font-bold text-green-600">{segment.FlightStatus || segment.Status}</p>
+                  <p className="text-sm text-gray-600">PNR: {segment.AirlinePNR || 'N/A'}</p>
                 </div>
               </div>
 
@@ -338,11 +378,12 @@ export default function BookingConfirmationPage() {
                   <p className="text-sm text-gray-600 flex items-center">
                     <IoLocationOutline className="w-4 h-4 mr-1" /> Departure
                   </p>
-                  <p className="text-2xl font-bold text-gray-800">{segment.Origin}</p>
-                  <p className="text-sm text-gray-600">{formatTime(segment.DepTime)}</p>
-                  <p className="text-xs text-gray-500">{formatDate(segment.DepTime)}</p>
-                  {segment.Terminal?.Departure && (
-                    <p className="text-xs text-gray-500">Terminal {segment.Terminal.Departure}</p>
+                  <p className="text-2xl font-bold text-gray-800">{originCode}</p>
+                  <p className="text-xs text-gray-500 mb-1">{originCity}</p>
+                  <p className="text-sm text-gray-600">{formatTime(depTime)}</p>
+                  <p className="text-xs text-gray-500">{formatDate(depTime)}</p>
+                  {originTerminal && (
+                    <p className="text-xs text-gray-500">Terminal {originTerminal}</p>
                   )}
                 </div>
 
@@ -356,18 +397,19 @@ export default function BookingConfirmationPage() {
                     <IoTimeOutline className="w-4 h-4 mr-1" />
                     {formatDuration(segment.Duration)}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">{segment.FareClass} Class</p>
+                  <p className="text-xs text-gray-500 mt-1">{fareClass} Class</p>
                 </div>
 
                 <div className="text-right">
                   <p className="text-sm text-gray-600 flex items-center justify-end">
                     <IoLocationOutline className="w-4 h-4 mr-1" /> Arrival
                   </p>
-                  <p className="text-2xl font-bold text-gray-800">{segment.Destination}</p>
-                  <p className="text-sm text-gray-600">{formatTime(segment.ArrTime)}</p>
-                  <p className="text-xs text-gray-500">{formatDate(segment.ArrTime)}</p>
-                  {segment.Terminal?.Arrival && (
-                    <p className="text-xs text-gray-500">Terminal {segment.Terminal.Arrival}</p>
+                  <p className="text-2xl font-bold text-gray-800">{destCode}</p>
+                  <p className="text-xs text-gray-500 mb-1">{destCity}</p>
+                  <p className="text-sm text-gray-600">{formatTime(arrTime)}</p>
+                  <p className="text-xs text-gray-500">{formatDate(arrTime)}</p>
+                  {destTerminal && (
+                    <p className="text-xs text-gray-500">Terminal {destTerminal}</p>
                   )}
                 </div>
               </div>
@@ -383,7 +425,8 @@ export default function BookingConfirmationPage() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })};
         </div>
 
         {/* Passenger Details */}
