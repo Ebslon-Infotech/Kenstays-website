@@ -57,25 +57,57 @@ export default function HotelDetailsPage() {
   const fetchDetails = async () => {
     try {
       setLoading(true);
+      console.log("Fetching details for hotel code:", hotelCode);
+
       const response = await hotelsAPI.getDetails(hotelCode);
+      console.log("Hotel Details API Response:", response);
+
       if (response.success && response.data?.HotelDetails?.[0]) {
         const h = response.data.HotelDetails[0];
+        console.log("Raw hotel data from TBO:", h);
+
         // Normalize StarRating from "5Star" or similar to a number
         const normalized = {
           ...h,
+          // Ensure HotelName field exists
+          HotelName: h.HotelName || h.Name || "Hotel",
+          // Normalize star rating
           StarRating: (() => {
-            const r = h.HotelRating?.toLowerCase() || "";
-            if (typeof h.HotelRating !== "string") return h.HotelRating || 0;
-            if (r.includes("one")) return 1;
-            if (r.includes("two")) return 2;
-            if (r.includes("three")) return 3;
-            if (r.includes("four")) return 4;
-            if (r.includes("five")) return 5;
-            return parseInt(r.replace("star", "") || "0");
+            // Handle if HotelRating or Rating is already a number
+            const rating = h.HotelRating ?? h.Rating;
+
+            if (typeof rating === "number") {
+              return rating;
+            }
+
+            if (!rating) return 0;
+
+            // Convert to string and lowercase
+            const r = String(rating).toLowerCase();
+
+            // Parse text-based ratings
+            if (r.includes("one") || r === "1") return 1;
+            if (r.includes("two") || r === "2") return 2;
+            if (r.includes("three") || r === "3") return 3;
+            if (r.includes("four") || r === "4") return 4;
+            if (r.includes("five") || r === "5") return 5;
+
+            // Try to extract number (handles "5Star", "5 Star", etc.)
+            const match = r.match(/(\d+)/);
+            return match ? parseInt(match[1]) : 0;
           })(),
+          // Ensure Images array
+          Images: h.Images || h.HotelPictures || [],
+          // Ensure Facilities
+          HotelFacilities: h.HotelFacilities || h.Facilities || [],
+          // Ensure Address
+          Address: h.Address || h.HotelAddress || "",
         };
+
+        console.log("Normalized hotel data:", normalized);
         setHotelData(normalized);
       } else {
+        console.error("Invalid response structure:", response);
         setError("Hotel details not found.");
       }
     } catch (err) {
@@ -180,6 +212,14 @@ export default function HotelDetailsPage() {
 
         <div className="flex items-start justify-between">
           <div className="flex flex-col items-start gap-3">
+            <div className="flex items-center gap-2">
+              <HiOutlineLocationMarker size={18} className="text-gray-500" />
+              <p className="text-sm text-gray-600">
+                {hotelData?.Address ||
+                  hotelData?.HotelAddress ||
+                  "Location not available"}
+              </p>
+            </div>
             <h2
               className="font-medium text-3xl"
               style={{ fontFamily: "var(--font-playfair-display)" }}
@@ -196,7 +236,7 @@ export default function HotelDetailsPage() {
                   >
                     <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                   </svg>
-                )
+                ),
               )}
             </div>
           </div>
@@ -289,7 +329,7 @@ export default function HotelDetailsPage() {
                                     </svg>
                                     <span>{amenity}</span>
                                   </div>
-                                )
+                                ),
                               )}
                             </div>
                             <div className="mt-4 flex justify-between items-center">
@@ -320,7 +360,7 @@ export default function HotelDetailsPage() {
                         >
                           {facility}
                         </div>
-                      )
+                      ),
                     )}
                   </div>
 
@@ -404,7 +444,7 @@ export default function HotelDetailsPage() {
                                     {attr.value}
                                   </span>
                                 </div>
-                              )
+                              ),
                             )}
                           </div>
                         </div>
@@ -565,7 +605,7 @@ export default function HotelDetailsPage() {
                         Book Now
                       </button>
 
-                      <p className="text-xs text-start mt-2 text-blue-600 mt-2">
+                      <p className="text-xs text-start mt-2 text-blue-600">
                         No hidden fees • Cancel anytime
                       </p>
                     </div>

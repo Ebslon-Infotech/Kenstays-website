@@ -58,6 +58,7 @@ export default function HotelSearchPage() {
       const response = await hotelsAPI.browse(cityName);
 
       console.log("Hotel Browse Response:", response);
+      console.log("Sample hotel data:", response.data?.HotelDetails?.[0]);
 
       // Extract the hotels list with multiple fallback paths
       const resultsData = response.data || response;
