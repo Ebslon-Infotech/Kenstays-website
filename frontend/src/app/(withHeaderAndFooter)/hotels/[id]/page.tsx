@@ -3,7 +3,13 @@
 import React, { useState } from "react";
 import Image from "next/image";
 
-import { IoMdHeartEmpty, IoMdClose, IoMdStar } from "react-icons/io";
+import {
+  IoMdHeartEmpty,
+  IoMdClose,
+  IoMdStar,
+  IoMdArrowBack,
+  IoMdArrowForward,
+} from "react-icons/io";
 import { IoBedOutline } from "react-icons/io5";
 import { BiBorderAll } from "react-icons/bi";
 import { GoShareAndroid } from "react-icons/go";
@@ -43,16 +49,97 @@ export default function HotelDetailsPage() {
   const [activeTab, setActiveTab] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<number | null>(null);
   const [isOpenModal, setIsOpenModal] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [rating, setRating] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [hotelData, setHotelData] = useState<any>(null);
+  const [showCopyToast, setShowCopyToast] = useState(false);
 
   React.useEffect(() => {
     if (hotelCode) {
       fetchDetails();
     }
   }, [hotelCode]);
+
+  // Keyboard navigation for image gallery
+  React.useEffect(() => {
+    if (!isGalleryOpen || !hotelData) return;
+
+    const images = hotelData?.Images || [];
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        setCurrentImageIndex((prev) =>
+          prev === 0 ? images.length - 1 : prev - 1,
+        );
+      } else if (e.key === "ArrowRight") {
+        setCurrentImageIndex((prev) =>
+          prev === images.length - 1 ? 0 : prev + 1,
+        );
+      } else if (e.key === "Escape") {
+        setIsGalleryOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [isGalleryOpen, hotelData]);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const title = hotelData?.HotelName || "Hotel Details";
+    const text = `Check out ${title}`;
+
+    try {
+      // Check if Web Share API is available (mobile devices)
+      if (navigator.share) {
+        await navigator.share({
+          title,
+          text,
+          url,
+        });
+      } else {
+        // Fallback: Copy to clipboard
+        await navigator.clipboard.writeText(url);
+        setShowCopyToast(true);
+        setTimeout(() => setShowCopyToast(false), 3000);
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+    }
+  };
+
+  React.useEffect(() => {
+    if (hotelCode) {
+      fetchDetails();
+    }
+  }, [hotelCode]);
+
+  // Keyboard navigation for image gallery
+  React.useEffect(() => {
+    if (!isGalleryOpen || !hotelData) return;
+
+    const images = hotelData?.Images || [];
+
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        setCurrentImageIndex((prev) =>
+          prev === 0 ? images.length - 1 : prev - 1,
+        );
+      } else if (e.key === "ArrowRight") {
+        setCurrentImageIndex((prev) =>
+          prev === images.length - 1 ? 0 : prev + 1,
+        );
+      } else if (e.key === "Escape") {
+        setIsGalleryOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [isGalleryOpen, hotelData]);
 
   const fetchDetails = async () => {
     try {
@@ -200,11 +287,17 @@ export default function HotelDetailsPage() {
               height={300}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center rounded-md">
+            <div
+              onClick={() => {
+                setIsGalleryOpen(true);
+                setCurrentImageIndex(0);
+              }}
+              className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center rounded-md cursor-pointer hover:bg-opacity-60 transition-all"
+            >
               <span className="text-white text-2xl font-semibold">
                 {images.length > 5
-                  ? `${images.length - 5}+ images`
-                  : "View details"}
+                  ? `+${images.length - 5} images`
+                  : "View Gallery"}
               </span>
             </div>
           </div>
@@ -244,7 +337,11 @@ export default function HotelDetailsPage() {
             <button className="p-2 border rounded-md hover:bg-gray-100">
               <IoMdHeartEmpty size={20} className="text-gray-400" />
             </button>
-            <button className="p-2 border rounded-md hover:bg-gray-100">
+            <button
+              onClick={handleShare}
+              className="p-2 border rounded-md hover:bg-gray-100 transition-colors"
+              title="Share this hotel"
+            >
               <GoShareAndroid size={20} className="text-gray-400" />
             </button>
           </div>
@@ -778,6 +875,118 @@ export default function HotelDetailsPage() {
               </button>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Image Gallery Modal */}
+      {isGalleryOpen && images.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center">
+          <div className="relative w-full h-full flex flex-col">
+            {/* Header */}
+            <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-6">
+              <div className="flex justify-between items-center max-w-7xl mx-auto">
+                <div className="text-white">
+                  <h2 className="text-2xl font-bold">
+                    {hotelData?.HotelName || "Hotel Gallery"}
+                  </h2>
+                  <p className="text-sm text-gray-300">
+                    Image {currentImageIndex + 1} of {images.length}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsGalleryOpen(false)}
+                  className="text-white hover:text-gray-300 transition-colors"
+                >
+                  <IoMdClose size={40} />
+                </button>
+              </div>
+            </div>
+
+            {/* Main Image */}
+            <div className="flex-1 flex items-center justify-center p-4 mt-20 mb-32">
+              <div className="relative w-full h-full max-w-6xl max-h-[70vh]">
+                <Image
+                  src={images[currentImageIndex]}
+                  alt={`Hotel image ${currentImageIndex + 1}`}
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            </div>
+
+            {/* Navigation Arrows */}
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={() =>
+                    setCurrentImageIndex((prev) =>
+                      prev === 0 ? images.length - 1 : prev - 1,
+                    )
+                  }
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white p-4 rounded-full transition-all"
+                >
+                  <IoMdArrowBack size={32} />
+                </button>
+                <button
+                  onClick={() =>
+                    setCurrentImageIndex((prev) =>
+                      prev === images.length - 1 ? 0 : prev + 1,
+                    )
+                  }
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white p-4 rounded-full transition-all"
+                >
+                  <IoMdArrowForward size={32} />
+                </button>
+              </>
+            )}
+
+            {/* Thumbnail Strip */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+              <div className="max-w-7xl mx-auto overflow-x-auto">
+                <div className="flex gap-2 min-w-max">
+                  {images.map((img: string, index: number) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`relative w-24 h-16 flex-shrink-0 rounded overflow-hidden transition-all ${
+                        currentImageIndex === index
+                          ? "ring-4 ring-white scale-110"
+                          : "opacity-50 hover:opacity-100"
+                      }`}
+                    >
+                      <Image
+                        src={img}
+                        alt={`Thumbnail ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Copy Toast Notification */}
+      {showCopyToast && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 animate-slide-up">
+          <svg
+            className="w-5 h-5 text-green-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+          <span className="font-medium">Link copied to clipboard!</span>
         </div>
       )}
     </>
