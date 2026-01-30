@@ -51,11 +51,11 @@ export default function HotelSearchPage() {
       setLoading(true);
       setError("");
 
-      // Default to New Delhi (130443) if no city is searched yet
-      const cityId = searchParams.get("cityId") || "130443";
+      // Get city name from search params, default to "New Delhi"
+      const cityName = searchParams.get("city") || "New Delhi";
 
-      // Using the browse (static) API as requested to get "multiple details"
-      const response = await hotelsAPI.browse(cityId);
+      // Using the browse API - now accepts city name instead of city code
+      const response = await hotelsAPI.browse(cityName);
 
       console.log("Hotel Browse Response:", response);
 
@@ -104,7 +104,7 @@ export default function HotelSearchPage() {
         console.warn("Hotel list empty or invalid structure:", hotelList);
         setHotels([]);
         setError(
-          resultsData?.message || "No hotels found for the selected city."
+          resultsData?.message || "No hotels found for the selected city.",
         );
       }
     } catch (err: any) {
@@ -118,43 +118,43 @@ export default function HotelSearchPage() {
   const handleChange = (
     id: any,
     field: "type" | "rating" | "reservation" | "facility" | "room",
-    value?: any
+    value?: any,
   ) => {
     if (field === "type") {
       setProperty((prev) =>
         prev.map((airline) =>
           airline.id === id
             ? { ...airline, checked: !airline.checked }
-            : airline
-        )
+            : airline,
+        ),
       );
     } else if (field === "rating") {
       setRating((prev) =>
         prev.map((rate) =>
-          rate.id === id ? { ...rate, checked: !rate.checked } : rate
-        )
+          rate.id === id ? { ...rate, checked: !rate.checked } : rate,
+        ),
       );
     } else if (field === "reservation") {
       setReservation((prev) =>
         prev.map((reserve) =>
           reserve.id === id
             ? { ...reserve, checked: !reserve.checked }
-            : reserve
-        )
+            : reserve,
+        ),
       );
     } else if (field === "facility") {
       setFacilities((prev) =>
         prev.map((facility) =>
           facility.id === id
             ? { ...facility, checked: !facility.checked }
-            : facility
-        )
+            : facility,
+        ),
       );
     } else if (field === "room") {
       setRoom((prev) =>
         prev.map((room) =>
-          room.id === id ? { ...room, checked: !room.checked } : room
-        )
+          room.id === id ? { ...room, checked: !room.checked } : room,
+        ),
       );
     }
   };
@@ -382,7 +382,7 @@ export default function HotelSearchPage() {
                                     >
                                       {f}
                                     </span>
-                                  )
+                                  ),
                                 )}
                               </div>
                             </div>
@@ -407,7 +407,7 @@ export default function HotelSearchPage() {
                                           className="object-cover rounded border border-gray-100 shadow-sm"
                                         />
                                       </div>
-                                    )
+                                    ),
                                   )}
                                   {hotelData.Images.length > 5 && (
                                     <div className="w-8 h-8 bg-gray-100 flex items-center justify-center text-[8px] text-gray-400 rounded border border-gray-100">

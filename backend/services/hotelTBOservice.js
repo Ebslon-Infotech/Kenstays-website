@@ -295,33 +295,85 @@ const searchHotels = async (searchParams) => {
 };
 
 /**
- * Browse Hotels by City Code (get hotel codes then details)
- * Convenience function that combines getHotelCodeList and getHotelDetails
+ * Browse Hotels by City Name (resolves city name to code, then gets hotel details)
+ * @param {string} cityName - Name of the city to search for (e.g., "Delhi", "Mumbai")
+ * @param {string} countryCode - Country code (default: "IN" for India)
  */
-const browseHotels = async (cityCode) => {
+const browseHotels = async (cityName, countryCode = "IN") => {
   try {
-    // First, get the list of hotel codes for the city
-    const hotelCodeResponse = await getHotelCodeList(cityCode);
-    console.log("Hotel Code Response:", hotelCodeResponse);
-    // Extract hotel codes from the response
-    let hotelCodes = hotelCodeResponse?.Hotels || hotelCodeResponse.HotelCodes;
-    hotelCodes = hotelCodes.map((hotel) => hotel.HotelCode);
-    if (!hotelCodes || !Array.isArray(hotelCodes) || hotelCodes.length === 0) {
+    // Step 1: Fetch city list for the country
+    console.log(`Fetching cities for country: ${countryCode}`);
+    const cityListResponse = await getCityList(countryCode);
+
+    // Extract city list from response
+    const cities = cityListResponse?.CityList || cityListResponse;
+
+    if (!cities || !Array.isArray(cities) || cities.length === 0) {
+      throw new Error(`No cities found for country code: ${countryCode}`);
+    }
+
+    // Step 2: Find the matching city (case-insensitive search)
+    const normalizedSearchTerm = cityName.toLowerCase().trim();
+
+    const matchingCity = cities.find(
+      (city) =>
+        city.Name?.toLowerCase().includes(normalizedSearchTerm) ||
+        normalizedSearchTerm.includes(city.Name?.toLowerCase()),
+    );
+
+    if (!matchingCity) {
       return {
-        success: true,
+        success: false,
         HotelDetails: [],
-        message: "No hotels found for this city",
+        message: `City "${cityName}" not found in ${countryCode}. Please check the city name.`,
       };
     }
 
-    // Get up to 20 hotel codes (to avoid overwhelming the API)
+    console.log(
+      `Found city: ${matchingCity.Name} (Code: ${matchingCity.Code})`,
+    );
+    const cityCode = matchingCity.Code;
+
+    // Step 3: Get the list of hotel codes for the city
+    const hotelCodeResponse = await getHotelCodeList(cityCode);
+    console.log("Hotel Code Response:", hotelCodeResponse);
+
+    // Extract hotel codes from the response
+    let hotelCodes = hotelCodeResponse?.Hotels || hotelCodeResponse?.HotelCodes;
+
+    if (!hotelCodes || !Array.isArray(hotelCodes)) {
+      return {
+        success: true,
+        HotelDetails: [],
+        message: `No hotels found for ${matchingCity.Name}`,
+      };
+    }
+
+    hotelCodes = hotelCodes.map((hotel) => hotel.HotelCode);
+
+    if (hotelCodes.length === 0) {
+      return {
+        success: true,
+        HotelDetails: [],
+        message: `No hotels found for ${matchingCity.Name}`,
+      };
+    }
+
+    // Step 4: Get up to 20 hotel codes (to avoid overwhelming the API)
     const limitedCodes = hotelCodes.slice(0, 20);
     const hotelCodeString = limitedCodes.join(",");
 
-    // Get detailed information for these hotels
+    // Step 5: Get detailed information for these hotels
     const hotelDetails = await getHotelDetails(hotelCodeString);
 
-    return hotelDetails;
+    return {
+      ...hotelDetails,
+      city: {
+        name: matchingCity.CityName,
+        code: matchingCity.CityCode,
+        country: countryCode,
+      },
+    };
   } catch (error) {
     console.error("BrowseHotels Error:", error.response?.data || error.message);
     throw error;

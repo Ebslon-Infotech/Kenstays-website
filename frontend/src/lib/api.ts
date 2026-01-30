@@ -40,7 +40,11 @@ export const setUser = (user: any) => {
 };
 
 // Generic API call function with timeout
-const apiCall = async (endpoint: string, options: RequestInit = {}, timeoutMs: number = 90000) => {
+const apiCall = async (
+  endpoint: string,
+  options: RequestInit = {},
+  timeoutMs: number = 90000,
+) => {
   const token = getAuthToken();
 
   const headers: HeadersInit = {
@@ -63,7 +67,7 @@ const apiCall = async (endpoint: string, options: RequestInit = {}, timeoutMs: n
       ...config,
       signal: controller.signal,
     });
-    
+
     clearTimeout(timeoutId);
     const data = await response.json();
 
@@ -73,8 +77,10 @@ const apiCall = async (endpoint: string, options: RequestInit = {}, timeoutMs: n
 
     return data;
   } catch (error: any) {
-    if (error.name === 'AbortError') {
-      throw new Error('Request timeout. The server is taking too long to respond. Please try again.');
+    if (error.name === "AbortError") {
+      throw new Error(
+        "Request timeout. The server is taking too long to respond. Please try again.",
+      );
     }
     throw new Error(error.message || "Network error");
   }
@@ -155,10 +161,10 @@ export const hotelsAPI = {
     });
   },
 
-  browse: async (cityId: string) => {
+  browse: async (cityName: string, countryCode: string = "IN") => {
     return await apiCall("/hotels/browse", {
       method: "POST",
-      body: JSON.stringify({ CityCode: cityId }),
+      body: JSON.stringify({ CityName: cityName, CountryCode: countryCode }),
     });
   },
 
@@ -193,7 +199,7 @@ export const hotelsAPI = {
 
   addReview: async (
     id: string,
-    review: { rating: number; comment: string }
+    review: { rating: number; comment: string },
   ) => {
     return await apiCall(`/hotels/${id}/reviews`, {
       method: "POST",
@@ -242,7 +248,7 @@ export const homestaysAPI = {
 
   addReview: async (
     id: string,
-    review: { rating: number; comment: string }
+    review: { rating: number; comment: string },
   ) => {
     return await apiCall(`/homestays/${id}/reviews`, {
       method: "POST",
@@ -281,10 +287,14 @@ export const flightsAPI = {
   },
 
   getFareQuote: async (params: { traceId: string; resultIndex: string }) => {
-    return await apiCall("/flights/fare-quote", {
-      method: "POST",
-      body: JSON.stringify(params),
-    }, 150000); // 150 seconds timeout for slow TekTravels fare quote API
+    return await apiCall(
+      "/flights/fare-quote",
+      {
+        method: "POST",
+        body: JSON.stringify(params),
+      },
+      150000,
+    ); // 150 seconds timeout for slow TekTravels fare quote API
   },
 
   getSSR: async (params: {
@@ -292,8 +302,8 @@ export const flightsAPI = {
     resultIndex?: string;
     bookingId?: number;
   }) => {
-    return await apiCall('/flights/ssr', {
-      method: 'POST',
+    return await apiCall("/flights/ssr", {
+      method: "POST",
       body: JSON.stringify(params),
     });
   },
@@ -354,8 +364,8 @@ export const flightsAPI = {
       };
     }>;
   }) => {
-    return await apiCall('/flights/book', {
-      method: 'POST',
+    return await apiCall("/flights/book", {
+      method: "POST",
       body: JSON.stringify(bookingParams),
     });
   },
@@ -463,8 +473,8 @@ export const flightsAPI = {
     }>;
     isPriceChangeAccepted?: boolean;
   }) => {
-    return await apiCall('/flights/ticket', {
-      method: 'POST',
+    return await apiCall("/flights/ticket", {
+      method: "POST",
       body: JSON.stringify(ticketParams),
     });
   },
@@ -479,14 +489,15 @@ export const flightsAPI = {
   }) => {
     // Build query string from provided parameters
     const queryParams = new URLSearchParams();
-    if (params.bookingId) queryParams.append('bookingId', params.bookingId.toString());
-    if (params.pnr) queryParams.append('pnr', params.pnr);
-    if (params.firstName) queryParams.append('firstName', params.firstName);
-    if (params.lastName) queryParams.append('lastName', params.lastName);
-    if (params.traceId) queryParams.append('traceId', params.traceId);
+    if (params.bookingId)
+      queryParams.append("bookingId", params.bookingId.toString());
+    if (params.pnr) queryParams.append("pnr", params.pnr);
+    if (params.firstName) queryParams.append("firstName", params.firstName);
+    if (params.lastName) queryParams.append("lastName", params.lastName);
+    if (params.traceId) queryParams.append("traceId", params.traceId);
 
     return await apiCall(`/flights/booking-details?${queryParams.toString()}`, {
-      method: 'GET',
+      method: "GET",
     });
   },
 
@@ -553,7 +564,7 @@ export const holidaysAPI = {
 
   addReview: async (
     id: string,
-    review: { rating: number; comment: string }
+    review: { rating: number; comment: string },
   ) => {
     return await apiCall(`/holidays/${id}/reviews`, {
       method: "POST",

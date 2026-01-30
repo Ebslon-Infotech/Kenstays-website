@@ -127,18 +127,23 @@ exports.getHotelDetails = async (req, res) => {
   }
 };
 
-// @desc    Browse Hotels by City Code (get codes + details)
+// @desc    Browse Hotels by City Name (automatically resolves city name to code)
 // @route   POST /api/hotels/browse
 // @access  Public
 exports.browseHotels = async (req, res) => {
   try {
-    const { CityCode } = req.body;
-    if (!CityCode) {
-      return res
-        .status(400)
-        .json({ success: false, message: "CityCode is required" });
+    const { CityName, CountryCode } = req.body;
+
+    if (!CityName) {
+      return res.status(400).json({
+        success: false,
+        message: "CityName is required (e.g., 'Delhi', 'Mumbai')",
+      });
     }
-    const hotels = await hotelTBOService.browseHotels(CityCode);
+
+    // CountryCode is optional, defaults to "IN" (India) in the service
+    const hotels = await hotelTBOService.browseHotels(CityName, CountryCode);
+
     res.status(200).json({
       success: true,
       data: hotels,
