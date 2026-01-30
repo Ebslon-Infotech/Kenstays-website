@@ -15,11 +15,13 @@ const {
   getCityList,
   getHotelCodeList,
   getHotelDetails,
+  browseHotels,
 } = require("../controllers/hotelTBOController");
 const { protect, authorize } = require("../middleware/auth");
 
 // TBO Hotel Routes (Must be before /:id)
 router.post("/search", searchTBOHotels);
+router.post("/browse", browseHotels);
 router.get("/balance", protect, authorize("admin"), getAgencyBalance);
 router.get("/static/countries", getCountryList);
 router.post("/static/cities", getCityList);

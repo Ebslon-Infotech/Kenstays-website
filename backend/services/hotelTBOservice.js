@@ -49,7 +49,7 @@ const authenticate = async () => {
         Password: TEKTRAVELS_PASSWORD,
         EndUserIp: TEKTRAVELS_END_USER_IP,
       },
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { "Content-Type": "application/json" } },
     );
 
     if (response.data && response.data.TokenId) {
@@ -65,7 +65,7 @@ const authenticate = async () => {
         now.getDate(),
         23,
         59,
-        59
+        59,
       ).getTime();
 
       console.log("TBO Authentication successful. Token:", cachedToken);
@@ -100,13 +100,13 @@ const getAgencyBalance = async () => {
         TokenMemberId: auth.Member.MemberId, // Assuming structure
         TokenId: auth.TokenId,
       },
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { "Content-Type": "application/json" } },
     );
     return response.data;
   } catch (error) {
     console.error(
       "GetAgencyBalance Error:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
@@ -125,7 +125,7 @@ const getCountryList = async () => {
   } catch (error) {
     console.error(
       "GetCountryList Error:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
@@ -148,7 +148,7 @@ const getCityList = async (countryCode) => {
           "Content-Type": "application/json",
           Authorization: STATIC_API_AUTH_HEADER,
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -175,13 +175,13 @@ const getHotelCodeList = async (cityCode) => {
           "Content-Type": "application/json",
           Authorization: STATIC_API_AUTH_HEADER,
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
     console.error(
       "GetHotelCodeList Error:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
@@ -205,13 +205,13 @@ const getHotelDetails = async (hotelCode, language = "EN") => {
           "Content-Type": "application/json",
           Authorization: STATIC_API_AUTH_HEADER,
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
     console.error(
       "GetHotelDetails Error:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
@@ -229,7 +229,7 @@ const searchHotels = async (searchParams) => {
     // Safety check: Ensure Agency details are present
     if (!auth || !auth.Agency) {
       console.warn(
-        "Auth object missing Agency details. Retrying authentication..."
+        "Auth object missing Agency details. Retrying authentication...",
       );
       // Force clear cache and retry once
       cachedToken = null;
@@ -240,7 +240,7 @@ const searchHotels = async (searchParams) => {
 
       if (!auth || !auth.Agency) {
         throw new Error(
-          "Authentication failed to retrieve Agency details from TBO."
+          "Authentication failed to retrieve Agency details from TBO.",
         );
       }
     }
@@ -275,13 +275,13 @@ const searchHotels = async (searchParams) => {
 
     console.log(
       "Searching Hotels with payload:",
-      JSON.stringify(payload, null, 2)
+      JSON.stringify(payload, null, 2),
     );
 
     const response = await axios.post(
       `${TBO_HOTEL_SEARCH_BASE_URL}/Search`,
       payload,
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { "Content-Type": "application/json" } },
     );
 
     return response.data;
@@ -294,6 +294,40 @@ const searchHotels = async (searchParams) => {
   }
 };
 
+/**
+ * Browse Hotels by City Code (get hotel codes then details)
+ * Convenience function that combines getHotelCodeList and getHotelDetails
+ */
+const browseHotels = async (cityCode) => {
+  try {
+    // First, get the list of hotel codes for the city
+    const hotelCodeResponse = await getHotelCodeList(cityCode);
+    console.log("Hotel Code Response:", hotelCodeResponse);
+    // Extract hotel codes from the response
+    let hotelCodes = hotelCodeResponse?.Hotels || hotelCodeResponse.HotelCodes;
+    hotelCodes = hotelCodes.map((hotel) => hotel.HotelCode);
+    if (!hotelCodes || !Array.isArray(hotelCodes) || hotelCodes.length === 0) {
+      return {
+        success: true,
+        HotelDetails: [],
+        message: "No hotels found for this city",
+      };
+    }
+
+    // Get up to 20 hotel codes (to avoid overwhelming the API)
+    const limitedCodes = hotelCodes.slice(0, 20);
+    const hotelCodeString = limitedCodes.join(",");
+
+    // Get detailed information for these hotels
+    const hotelDetails = await getHotelDetails(hotelCodeString);
+
+    return hotelDetails;
+  } catch (error) {
+    console.error("BrowseHotels Error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   authenticate,
   getAgencyBalance,
@@ -302,4 +336,5 @@ module.exports = {
   getHotelCodeList,
   getHotelDetails,
   searchHotels,
+  browseHotels,
 };

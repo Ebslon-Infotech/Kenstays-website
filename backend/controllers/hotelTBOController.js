@@ -126,3 +126,27 @@ exports.getHotelDetails = async (req, res) => {
     });
   }
 };
+
+// @desc    Browse Hotels by City Code (get codes + details)
+// @route   POST /api/hotels/browse
+// @access  Public
+exports.browseHotels = async (req, res) => {
+  try {
+    const { CityCode } = req.body;
+    if (!CityCode) {
+      return res
+        .status(400)
+        .json({ success: false, message: "CityCode is required" });
+    }
+    const hotels = await hotelTBOService.browseHotels(CityCode);
+    res.status(200).json({
+      success: true,
+      data: hotels,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

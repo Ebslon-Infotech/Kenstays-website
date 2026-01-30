@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
-
+const logger = require("morgan")
 // Load env variables
 dotenv.config();
 
@@ -26,6 +26,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(logger())
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/hotels', require('./routes/hotels'));
